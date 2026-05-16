@@ -264,27 +264,24 @@ export default function App() {
     setPhase('analyzing');
     const startTime = Date.now();
     
-    let attempts = 0;
-    const maxAttempts = 2;
+    const maxAttempts = 3;
 
-    const performAnalysis = async (): Promise<void> => {
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 120000); // 120s timeout for mobile stability
+        // 180s timeout - server does internal retries which can take time
+        const timeoutId = setTimeout(() => controller.abort(), 180000);
 
         const jsonBody = JSON.stringify({
           base64Image: originalImage,
           type: 'aging'
         });
-        console.log(`Sending aging request, payload size: ${Math.round(jsonBody.length / 1024)}KB`);
+        console.log(`[Aging] Attempt ${attempt}/${maxAttempts}, payload: ${Math.round(jsonBody.length / 1024)}KB`);
 
         const res = await fetch('/api/transformar', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: { 'Content-Type': 'application/json' },
           signal: controller.signal,
-          // NOTE: keepalive removed - it limits payload to 64KB on mobile browsers!
           body: jsonBody
         });
         
@@ -311,55 +308,51 @@ export default function App() {
             setAgedImage(data.imagemTransformada);
             setPhase('aged_result');
           }, remaining);
+          return; // Success - exit
         } else {
           throw new Error(data.error || "Falha ao analisar imagem");
         }
       } catch (err: any) {
-        console.warn(`Analysis attempt ${attempts + 1} failed:`, err);
+        console.warn(`[Aging] Attempt ${attempt} failed:`, err.message || err);
         
-        // Detailed error for debugging on mobile
-        const errorMessage = err instanceof TypeError ? "Falha na conexão (Verifique sinal/Wi-Fi)" : (err.message || "Erro desconhecido");
-        const isNetworkErr = err instanceof TypeError || err.name === 'AbortError';
-        
-        if (attempts < maxAttempts && isNetworkErr) {
-          attempts++;
-          await new Promise(r => setTimeout(r, 3000)); // Longer retry delay
-          return performAnalysis();
+        if (attempt < maxAttempts) {
+          console.log(`[Aging] Retrying in 2s...`);
+          await new Promise(r => setTimeout(r, 2000));
+          continue;
         }
-        console.error("Analysis failed:", err);
-        alert(err.name === 'AbortError' ? "A conexão demorou muito. Sua foto é muito grande ou o sinal está fraco. Tente novamente." : "Erro na análise: " + errorMessage);
+        
+        // All attempts failed
+        const errorMessage = err.name === 'AbortError' 
+          ? "A conexão demorou muito. Verifique sua internet e tente novamente."
+          : (err.message || "Erro desconhecido");
+        console.error("[Aging] All attempts failed:", errorMessage);
+        alert("Erro na análise: " + errorMessage);
         setPhase('capture');
       }
-    };
-
-    await performAnalysis();
+    }
   };
 
   const applyTreatment = async () => {
     setPhase('processing_treatment');
     const startTime = Date.now();
     
-    let attempts = 0;
-    const maxAttempts = 2;
+    const maxAttempts = 3;
 
-    const performTreatment = async (): Promise<void> => {
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 120000); // 120s timeout for mobile stability
+        const timeoutId = setTimeout(() => controller.abort(), 180000);
 
         const jsonBody = JSON.stringify({
           base64Image: originalImage,
           type: 'treatment'
         });
-        console.log(`Sending treatment request, payload size: ${Math.round(jsonBody.length / 1024)}KB`);
+        console.log(`[Treatment] Attempt ${attempt}/${maxAttempts}, payload: ${Math.round(jsonBody.length / 1024)}KB`);
 
         const res = await fetch('/api/transformar', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: { 'Content-Type': 'application/json' },
           signal: controller.signal,
-          // NOTE: keepalive removed - it limits payload to 64KB on mobile browsers!
           body: jsonBody
         });
         
@@ -386,28 +379,28 @@ export default function App() {
             setTreatedImage(data.imagemTransformada);
             setPhase('treated_result');
           }, remaining);
+          return; // Success - exit
         } else {
           throw new Error(data.error || "Falha ao processar imagem");
         }
       } catch (err: any) {
-        console.warn(`Treatment attempt ${attempts + 1} failed:`, err);
+        console.warn(`[Treatment] Attempt ${attempt} failed:`, err.message || err);
         
-        // Detailed error for debugging on mobile
-        const errorMessage = err instanceof TypeError ? "Falha na conexão (Verifique sinal/Wi-Fi)" : (err.message || "Erro desconhecido");
-        const isNetworkErr = err instanceof TypeError || err.name === 'AbortError';
-        
-        if (attempts < maxAttempts && isNetworkErr) {
-          attempts++;
-          await new Promise(r => setTimeout(r, 3000)); // Longer retry delay
-          return performTreatment();
+        if (attempt < maxAttempts) {
+          console.log(`[Treatment] Retrying in 2s...`);
+          await new Promise(r => setTimeout(r, 2000));
+          continue;
         }
-        console.error("Treatment failed:", err);
-        alert(err.name === 'AbortError' ? "A conexão demorou muito no tratamento. Tente novamente." : "Erro no tratamento: " + errorMessage);
+        
+        // All attempts failed
+        const errorMessage = err.name === 'AbortError' 
+          ? "A conexão demorou muito. Verifique sua internet e tente novamente."
+          : (err.message || "Erro desconhecido");
+        console.error("[Treatment] All attempts failed:", errorMessage);
+        alert("Erro no tratamento: " + errorMessage);
         setPhase('aged_result');
       }
-    };
-
-    await performTreatment();
+    }
   };
 
   return (
