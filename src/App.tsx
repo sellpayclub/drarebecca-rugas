@@ -189,7 +189,7 @@ export default function App() {
         
         if (data.imagemTransformada) {
           const elapsed = Date.now() - startTime;
-          const minWait = 4500; // 4.5 seconds min for analysis feel
+          const minWait = 7500; // 7.5 seconds min for analysis feel
           const remaining = Math.max(0, minWait - elapsed);
           
           setTimeout(() => {
@@ -245,7 +245,7 @@ export default function App() {
         
         if (data.imagemTransformada) {
           const elapsed = Date.now() - startTime;
-          const minWait = 5500; // 5.5 seconds min for treatment feel
+          const minWait = 8500; // 8.5 seconds min for treatment feel
           const remaining = Math.max(0, minWait - elapsed);
 
           setTimeout(() => {
@@ -533,33 +533,42 @@ export default function App() {
                 className="flex-1 flex flex-col items-center justify-center space-y-8"
               >
                 <div className="relative">
-                  <div className="w-40 h-40 rounded-full overflow-hidden border-4 border-slate-200 opacity-60 blur-[1px]">
-                    <img src={originalImage!} alt="" className="w-full h-full object-cover grayscale" />
+                  <div className="w-48 h-48 rounded-full overflow-hidden border-4 border-emerald-500/30 shadow-[0_0_20px_rgba(16,185,129,0.2)]">
+                    <img src={originalImage!} alt="" className="w-full h-full object-cover" />
+                    <motion.div 
+                      initial={{ top: "-10%" }}
+                      animate={{ top: "110%" }}
+                      transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                      className="absolute left-0 right-0 h-1 bg-emerald-400 shadow-[0_0_15px_#10b981] z-10"
+                    />
                   </div>
-                  <div className="absolute inset-0 flex items-center justify-center text-emerald-600">
-                    <RefreshCw className="w-12 h-12 animate-spin" />
+                  <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 bg-white px-4 py-1 rounded-full shadow-md border border-slate-200 flex items-center gap-2">
+                    <RefreshCw className="w-3 h-3 text-emerald-600 animate-spin" />
+                    <span className="text-[10px] font-black uppercase text-slate-600 tracking-tighter">Escaneando Rosto</span>
                   </div>
                 </div>
                 
-                <div className="text-center space-y-3">
-                  <h3 className="text-3xl font-black text-slate-900 tracking-tight">Analisando derme...</h3>
-                  <p className="text-[16px] text-slate-600 font-medium max-w-sm px-6 leading-relaxed">
-                    Mapeando áreas de deficiência de colágeno e nível de regeneração celular.
+                <div className="text-center space-y-2">
+                  <h3 className="text-2xl font-black text-slate-900 tracking-tight italic">Analisando sua derme...</h3>
+                  <p className="text-[14px] text-slate-500 font-medium max-w-sm px-6 leading-relaxed">
+                    Identificando colônias de bactérias e falhas estruturais.
                   </p>
                 </div>
 
-                <div className="w-full max-w-sm space-y-4">
-                  <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden shadow-inner">
+                <div className="w-full max-w-sm space-y-4 pt-4">
+                  <div className="w-full h-2.5 bg-slate-200 rounded-full overflow-hidden shadow-inner border border-slate-300/50">
                     <motion.div 
                       initial={{ width: 0 }}
-                      animate={{ width: "100%" }}
-                      transition={{ duration: 5, ease: "linear" }}
+                      animate={{ width: "95%" }}
+                      transition={{ duration: 7, ease: "easeOut" }}
                       className="h-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]"
                     />
                   </div>
-                  <LoadingStep text="Investigando a pele..." delay={0} />
-                  <LoadingStep text="Medindo deficiência de colágeno..." delay={1.5} />
-                  <LoadingStep text="Projetando danos estruturais..." delay={3} />
+                  <div className="space-y-3">
+                    <LoadingStep text="Investigando a pele..." delay={0} />
+                    <LoadingStep text="Medindo deficiência de colágeno..." delay={2} />
+                    <LoadingStep text="Projetando danos estruturais..." delay={4.5} />
+                  </div>
                 </div>
               </motion.div>
             )}
@@ -635,33 +644,41 @@ export default function App() {
                 className="flex-1 flex flex-col items-center justify-center space-y-8"
               >
                 <div className="relative">
-                  <div className="w-40 h-40 rounded-full overflow-hidden border-8 border-emerald-100 shadow-2xl">
-                    <img src={agedImage!} alt="" className="w-full h-full object-cover blur-[2px] opacity-80" />
-                  </div>
-                  <div className="absolute inset-0 flex items-center justify-center gap-2">
-                    <Sparkles className="w-14 h-14 text-emerald-600 animate-pulse drop-shadow-lg" />
+                  <div className="w-48 h-48 rounded-full overflow-hidden border-8 border-emerald-100 shadow-2xl relative">
+                    <img src={agedImage!} alt="" className="w-full h-full object-cover" />
+                    <motion.div 
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: [0, 0.4, 0] }}
+                      transition={{ duration: 1.5, repeat: Infinity }}
+                      className="absolute inset-0 bg-emerald-400"
+                    />
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <Sparkles className="w-16 h-16 text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.8)] animate-pulse" />
+                    </div>
                   </div>
                 </div>
                 
-                <div className="text-center space-y-3">
-                  <h3 className="text-3xl font-black text-slate-900">Aplicando Protocolo...</h3>
-                  <p className="text-[16px] font-medium text-slate-600 max-w-sm px-4 leading-relaxed">
-                    Reativando as bactérias boas para <strong className="text-emerald-600">rejuvenescer</strong> o seu rosto.
+                <div className="text-center space-y-2">
+                  <h3 className="text-2xl font-black text-slate-900 italic">Aplicando Protocolo...</h3>
+                  <p className="text-[14px] font-medium text-slate-500 max-w-sm px-4 leading-relaxed">
+                    Reativando renovação celular e restaurando colágeno fresco.
                   </p>
                 </div>
 
-                <div className="w-full max-w-sm space-y-4">
-                  <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden shadow-inner">
+                <div className="w-full max-w-sm space-y-4 pt-4">
+                  <div className="w-full h-2.5 bg-slate-200 rounded-full overflow-hidden shadow-inner border border-slate-300/50">
                     <motion.div 
                       initial={{ width: 0 }}
-                      animate={{ width: "100%" }}
-                      transition={{ duration: 6, ease: "linear" }}
+                      animate={{ width: "95%" }}
+                      transition={{ duration: 8, ease: "easeOut" }}
                       className="h-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]"
                     />
                   </div>
-                  <LoadingStep text="Limpando bactérias ruins..." delay={0} />
-                  <LoadingStep text="Estimulando colágeno fresco..." delay={2} />
-                  <LoadingStep text="Renovando pele em 100%..." delay={4} />
+                  <div className="space-y-3">
+                    <LoadingStep text="Limpando bactérias ruins..." delay={0} />
+                    <LoadingStep text="Estimulando colágeno fresco..." delay={2.5} />
+                    <LoadingStep text="Renovando pele em 100%..." delay={5.5} />
+                  </div>
                 </div>
               </motion.div>
             )}
