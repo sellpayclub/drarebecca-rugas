@@ -59,12 +59,18 @@ export default function App() {
   const mainContentRef = useRef<HTMLDivElement>(null);
 
   // Image compression utility
-  const compressImage = (base64Str: string, maxWidth = 1024, maxHeight = 1024): Promise<string> => {
+  const compressImage = (base64Str: string, maxWidth = 640, maxHeight = 640): Promise<string> => {
     return new Promise((resolve) => {
+      if (!base64Str || !base64Str.startsWith('data:')) {
+        resolve(base64Str);
+        return;
+      }
+      
       const img = new Image();
-      img.src = base64Str;
-      img.crossOrigin = "anonymous";
+      const timeoutId = setTimeout(() => resolve(base64Str), 10000); // 10s individual image load timeout
+
       img.onload = () => {
+        clearTimeout(timeoutId);
         const canvas = document.createElement('canvas');
         let width = img.width;
         let height = img.height;
@@ -86,14 +92,21 @@ export default function App() {
         const ctx = canvas.getContext('2d');
         if (ctx) {
           ctx.imageSmoothingEnabled = true;
-          ctx.imageSmoothingQuality = 'high';
+          ctx.imageSmoothingQuality = 'medium';
           ctx.drawImage(img, 0, 0, width, height);
-          resolve(canvas.toDataURL('image/jpeg', 0.85));
+          // Reduced quality and size for mobile stability (640px is plenty for detection)
+          resolve(canvas.toDataURL('image/jpeg', 0.7));
         } else {
           resolve(base64Str);
         }
       };
-      img.onerror = () => resolve(base64Str);
+      
+      img.onerror = () => {
+        clearTimeout(timeoutId);
+        resolve(base64Str);
+      };
+
+      img.src = base64Str;
     });
   };
 
@@ -146,10 +159,24 @@ export default function App() {
 
   const captureFace = async () => {
     if (webcamRef.current) {
-      const imageSrc = webcamRef.current.getScreenshot();
-      if (imageSrc) {
-        const compressed = await compressImage(imageSrc);
-        setOriginalImage(compressed);
+      try {
+        setIsCapturing(true); // Show local loading
+        // Small delay for mobile camera frame readiness
+        await new Promise(r => setTimeout(r, 200));
+        
+        const imageSrc = webcamRef.current.getScreenshot();
+        if (imageSrc) {
+          const compressed = await compressImage(imageSrc);
+          setOriginalImage(compressed);
+          setIsCapturing(false);
+          // Reset errors on success
+          setCameraError(null);
+        } else {
+          throw new Error("Não foi possível capturar a imagem da câmera.");
+        }
+      } catch (err: any) {
+        console.error("Capture failure:", err);
+        alert("Erro ao capturar foto: " + (err.message || "Tente novamente."));
         setIsCapturing(false);
       }
     }
@@ -183,7 +210,7 @@ export default function App() {
     const performAnalysis = async (): Promise<void> => {
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout
+        const timeoutId = setTimeout(() => controller.abort(), 120000); // 120s timeout for mobile stability
 
         const res = await fetch('/api/transformar', {
           method: 'POST',
@@ -191,6 +218,7 @@ export default function App() {
             'Content-Type': 'application/json',
           },
           signal: controller.signal,
+          keepalive: true, // Help with mobile connection stability
           body: JSON.stringify({
             base64Image: originalImage,
             type: 'aging'
@@ -225,13 +253,18 @@ export default function App() {
         }
       } catch (err: any) {
         console.warn(`Analysis attempt ${attempts + 1} failed:`, err);
-        if (attempts < maxAttempts && err.name !== 'AbortError') {
+        
+        // Detailed error for debugging on mobile
+        const errorMessage = err instanceof TypeError ? "Falha na conexão (Verifique sinal/Wi-Fi)" : (err.message || "Erro desconhecido");
+        const isNetworkErr = err instanceof TypeError || err.name === 'AbortError';
+        
+        if (attempts < maxAttempts && isNetworkErr) {
           attempts++;
-          await new Promise(r => setTimeout(r, 2000));
+          await new Promise(r => setTimeout(r, 3000)); // Longer retry delay
           return performAnalysis();
         }
         console.error("Analysis failed:", err);
-        alert(err.name === 'AbortError' ? "A conexão demorou muito. Tente novamente." : "Houve um problema de conexão: " + err.message);
+        alert(err.name === 'AbortError' ? "A conexão demorou muito. Sua foto é muito grande ou o sinal está fraco. Tente novamente." : "Erro na análise: " + errorMessage);
         setPhase('capture');
       }
     };
@@ -249,7 +282,7 @@ export default function App() {
     const performTreatment = async (): Promise<void> => {
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout
+        const timeoutId = setTimeout(() => controller.abort(), 120000); // 120s timeout for mobile stability
 
         const res = await fetch('/api/transformar', {
           method: 'POST',
@@ -257,6 +290,7 @@ export default function App() {
             'Content-Type': 'application/json',
           },
           signal: controller.signal,
+          keepalive: true, // Help with mobile connection stability
           body: JSON.stringify({
             base64Image: originalImage,
             type: 'treatment'
@@ -291,13 +325,18 @@ export default function App() {
         }
       } catch (err: any) {
         console.warn(`Treatment attempt ${attempts + 1} failed:`, err);
-        if (attempts < maxAttempts && err.name !== 'AbortError') {
+        
+        // Detailed error for debugging on mobile
+        const errorMessage = err instanceof TypeError ? "Falha na conexão (Verifique sinal/Wi-Fi)" : (err.message || "Erro desconhecido");
+        const isNetworkErr = err instanceof TypeError || err.name === 'AbortError';
+        
+        if (attempts < maxAttempts && isNetworkErr) {
           attempts++;
-          await new Promise(r => setTimeout(r, 2000));
+          await new Promise(r => setTimeout(r, 3000)); // Longer retry delay
           return performTreatment();
         }
         console.error("Treatment failed:", err);
-        alert(err.name === 'AbortError' ? "A conexão demorou muito no processamento. Tente novamente." : "Erro de conexão: " + err.message);
+        alert(err.name === 'AbortError' ? "A conexão demorou muito no tratamento. Tente novamente." : "Erro no tratamento: " + errorMessage);
         setPhase('aged_result');
       }
     };
@@ -471,13 +510,17 @@ export default function App() {
                                 ref={webcamRef}
                                 screenshotFormat="image/jpeg"
                                 onUserMediaError={handleUserMediaError}
-                                videoConstraints={{ facingMode: FACING_MODES.USER }}
+                                videoConstraints={{ 
+                                  facingMode: FACING_MODES.USER,
+                                  width: { ideal: 720 },
+                                  height: { ideal: 1280 }
+                                }}
                                 className="w-full h-full object-cover aspect-[3/4]"
                                 mirrored={true}
                                 forceScreenshotSourceSize={false}
                                 imageSmoothing={true}
                                 disablePictureInPicture={true}
-                                screenshotQuality={0.92}
+                                screenshotQuality={0.8}
                                 onUserMedia={() => {}}
                               />
                               <div className="absolute top-4 right-4 z-10">
