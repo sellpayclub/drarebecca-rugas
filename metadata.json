@@ -1,0 +1,8 @@
+{
+  "name": "SimulaFace AI",
+  "description": "Uma plataforma de bio-simulação facial que mostra os efeitos do envelhecimento bacteriano e o potencial de um tratamento celular de rejuvenescimento.",
+  "requestFramePermissions": [
+    "camera"
+  ],
+  "majorCapabilities": []
+}
