@@ -28,7 +28,38 @@ export default function App() {
   const [treatedImage, setTreatedImage] = useState<string | null>(null);
   
   const [isCapturing, setIsCapturing] = useState(false);
+  const [cameraError, setCameraError] = useState<string | null>(null);
   const webcamRef = useRef<Webcam>(null);
+  const mainContentRef = useRef<HTMLDivElement>(null);
+
+  // Scroll to top on phase change
+  useEffect(() => {
+    // Immediate scroll
+    if (mainContentRef.current) {
+      mainContentRef.current.scrollTop = 0;
+    }
+    window.scrollTo(0, 0);
+
+    // Delayed scroll to account for AnimatePresence transitions
+    const timer = setTimeout(() => {
+      if (mainContentRef.current) {
+        mainContentRef.current.scrollTop = 0;
+      }
+      window.scrollTo(0, 0);
+    }, 100);
+
+    // Reset camera error when starting again
+    if (phase === 'capture') {
+      setCameraError(null);
+    }
+
+    return () => clearTimeout(timer);
+  }, [phase]);
+
+  const handleUserMediaError = (error: string | DOMException) => {
+    console.error("Camera error:", error);
+    setCameraError("permission_denied");
+  };
 
   // Video phase logic popup
   useEffect(() => {
@@ -132,7 +163,7 @@ export default function App() {
       {/* 100% Mobile App Container Constraint */}
       <div className="w-full max-w-[440px] mx-auto bg-slate-50 min-h-[100dvh] flex flex-col relative shadow-2xl shadow-slate-300">
         
-        <main className="flex-1 w-full px-6 py-8 flex flex-col relative overflow-y-auto">
+        <main ref={mainContentRef} className="flex-1 w-full px-6 py-8 flex flex-col relative overflow-y-auto">
           <AnimatePresence mode="wait">
             
             {/* PHASE 1: VIDEO INTRO */}
@@ -228,30 +259,92 @@ export default function App() {
                 <div className="flex-1 flex flex-col items-center gap-4">
                   {!originalImage ? (
                     isCapturing ? (
-                      <div className="relative w-full overflow-hidden rounded-3xl bg-slate-900 border border-slate-300">
-                        <Webcam
-                          audio={false}
-                          ref={webcamRef}
-                          screenshotFormat="image/jpeg"
-                          videoConstraints={{ facingMode: FACING_MODES.USER }}
-                          className="w-full h-full object-cover aspect-[3/4]"
-                        />
-                        <div className="absolute bottom-6 inset-x-0 flex justify-center flex-col items-center gap-3">
-                          <button 
-                            onClick={captureFace}
-                            className="w-20 h-20 rounded-full border-4 border-white bg-white/20 backdrop-blur-sm flex items-center justify-center hover:bg-white/40 active:scale-95 transition"
-                          />
-                          <p className="text-white text-[14px] uppercase font-black tracking-widest drop-shadow-lg">Tirar Foto</p>
-                        </div>
+                      <div className="relative w-full overflow-hidden rounded-3xl bg-slate-100 border-2 border-slate-200">
+                        {cameraError === 'permission_denied' ? (
+                          <div className="p-8 flex flex-col items-center text-center space-y-6">
+                            <div className="w-20 h-20 rounded-full bg-red-100 flex items-center justify-center">
+                              <Camera className="w-10 h-10 text-red-500" />
+                            </div>
+                            <div className="space-y-3">
+                              <h3 className="text-xl font-black text-slate-900">Acesso Negado</h3>
+                              <p className="text-slate-600 leading-relaxed font-medium">
+                                Para tirar a foto, você precisa autorizar o uso da câmera. 
+                              </p>
+                            </div>
+                            
+                            <div className="bg-white p-5 rounded-2xl border border-slate-200 text-left w-full space-y-4 shadow-sm">
+                              <h4 className="font-black text-slate-800 text-sm uppercase tracking-wider">Como autorizar:</h4>
+                              <ol className="space-y-4">
+                                <li className="flex gap-4 items-start">
+                                  <span className="w-6 h-6 rounded-full bg-indigo-600 text-white text-[12px] font-bold flex items-center justify-center shrink-0 mt-0.5">1</span>
+                                  <p className="text-[14px] text-slate-700 leading-snug">Clique no <strong>ícone de cadeado</strong> ou <strong>configurações</strong> lá no topo perto do endereço do site.</p>
+                                </li>
+                                <li className="flex gap-4 items-start">
+                                  <span className="w-6 h-6 rounded-full bg-indigo-600 text-white text-[12px] font-bold flex items-center justify-center shrink-0 mt-0.5">2</span>
+                                  <p className="text-[14px] text-slate-700 leading-snug">Procure a opção "Câmera" e mude para <strong>"Permitir"</strong>.</p>
+                                </li>
+                                <li className="flex gap-4 items-start">
+                                  <span className="w-6 h-6 rounded-full bg-indigo-600 text-white text-[12px] font-bold flex items-center justify-center shrink-0 mt-0.5">3</span>
+                                  <p className="text-[14px] text-slate-700 leading-snug">Depois disso, atualize esta página.</p>
+                                </li>
+                              </ol>
+                            </div>
+
+                            <button 
+                              onClick={() => window.location.reload()}
+                              className="w-full py-4 bg-slate-900 text-white font-black rounded-2xl uppercase tracking-widest text-[14px]"
+                            >
+                              Atualizar Página
+                            </button>
+                            
+                            <button 
+                              onClick={() => setIsCapturing(false)}
+                              className="text-slate-500 font-bold text-sm underline underline-offset-4"
+                            >
+                              Voltar
+                            </button>
+                          </div>
+                        ) : (
+                          <>
+                            <Webcam
+                              audio={false}
+                              ref={webcamRef}
+                              screenshotFormat="image/jpeg"
+                              onUserMediaError={handleUserMediaError}
+                              videoConstraints={{ facingMode: FACING_MODES.USER }}
+                              className="w-full h-full object-cover aspect-[3/4]"
+                            />
+                            <div className="absolute top-4 right-4 z-10">
+                              <button 
+                                onClick={() => setIsCapturing(false)}
+                                className="bg-black/50 text-white px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider backdrop-blur-md"
+                              >
+                                Cancelar
+                              </button>
+                            </div>
+                            <div className="absolute bottom-6 inset-x-0 flex justify-center flex-col items-center gap-3">
+                              <button 
+                                onClick={captureFace}
+                                className="w-20 h-20 rounded-full border-4 border-white bg-white/20 backdrop-blur-sm flex items-center justify-center hover:bg-white/40 active:scale-95 transition shadow-2xl"
+                              />
+                              <p className="text-white text-[14px] font-black uppercase tracking-widest drop-shadow-lg">Toque para Tirar a Foto</p>
+                            </div>
+                          </>
+                        )}
                       </div>
                     ) : (
                       <div className="w-full space-y-4">
                         <button 
                           onClick={() => setIsCapturing(true)}
-                          className="w-full py-8 rounded-3xl border-2 border-dashed border-slate-300 active:border-indigo-500 active:bg-indigo-50 transition flex flex-col items-center justify-center gap-3 text-slate-600 active:text-indigo-600 bg-white shadow-sm"
+                          className="w-full py-10 rounded-3xl border-2 border-dashed border-slate-300 active:border-indigo-500 active:bg-indigo-50 transition flex flex-col items-center justify-center gap-4 text-slate-600 active:text-indigo-600 bg-white shadow-sm"
                         >
-                          <Camera className="w-10 h-10 opacity-70" />
-                          <span className="text-[15px] font-black uppercase tracking-wider">Tirar Foto na Hora</span>
+                          <div className="w-16 h-16 rounded-full bg-indigo-50 flex items-center justify-center">
+                            <Camera className="w-8 h-8 text-indigo-600" />
+                          </div>
+                          <div className="text-center space-y-1">
+                            <span className="text-[17px] font-black uppercase tracking-wider block">CLIQUE AQUI PARA TIRAR FOTO!</span>
+                            <span className="text-[13px] text-slate-400 font-medium lowercase">Recomendado para melhor resultado</span>
+                          </div>
                         </button>
 
                         <div className="relative py-2">
