@@ -58,8 +58,8 @@ export default function App() {
   const webcamRef = useRef<Webcam>(null);
   const mainContentRef = useRef<HTMLDivElement>(null);
 
-  // Image compression utility
-  const compressImage = (base64Str: string, maxWidth = 640, maxHeight = 640): Promise<string> => {
+  // Image compression utility - handles HEIC, large mobile photos, EXIF orientation
+  const compressImage = (base64Str: string, maxWidth = 512, maxHeight = 512): Promise<string> => {
     return new Promise((resolve) => {
       if (!base64Str || !base64Str.startsWith('data:')) {
         resolve(base64Str);
@@ -67,46 +67,103 @@ export default function App() {
       }
       
       const img = new Image();
-      const timeoutId = setTimeout(() => resolve(base64Str), 10000); // 10s individual image load timeout
+      const timeoutId = setTimeout(() => {
+        console.warn('Image load timeout, using original');
+        resolve(base64Str);
+      }, 15000);
 
       img.onload = () => {
         clearTimeout(timeoutId);
-        const canvas = document.createElement('canvas');
-        let width = img.width;
-        let height = img.height;
+        try {
+          const canvas = document.createElement('canvas');
+          let width = img.naturalWidth || img.width;
+          let height = img.naturalHeight || img.height;
 
-        if (width > height) {
-          if (width > maxWidth) {
-            height *= maxWidth / width;
-            width = maxWidth;
-          }
-        } else {
-          if (height > maxHeight) {
-            width *= maxHeight / height;
-            height = maxHeight;
-          }
-        }
+          // Scale down proportionally
+          const scale = Math.min(1, maxWidth / width, maxHeight / height);
+          width = Math.round(width * scale);
+          height = Math.round(height * scale);
 
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        if (ctx) {
-          ctx.imageSmoothingEnabled = true;
-          ctx.imageSmoothingQuality = 'medium';
-          ctx.drawImage(img, 0, 0, width, height);
-          // Reduced quality and size for mobile stability (640px is plenty for detection)
-          resolve(canvas.toDataURL('image/jpeg', 0.7));
-        } else {
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            // White background to handle transparent PNGs
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillRect(0, 0, width, height);
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'medium';
+            ctx.drawImage(img, 0, 0, width, height);
+            // Always output as JPEG (handles HEIC, WEBP, PNG from mobile)
+            // Quality 0.75 balances size vs quality - keeps payload small for mobile
+            const result = canvas.toDataURL('image/jpeg', 0.75);
+            console.log(`Compressed: ${width}x${height}, size: ${Math.round(result.length / 1024)}KB`);
+            resolve(result);
+          } else {
+            resolve(base64Str);
+          }
+        } catch (err) {
+          console.error('Compression error:', err);
           resolve(base64Str);
         }
       };
       
       img.onerror = () => {
         clearTimeout(timeoutId);
+        console.error('Image load error during compression');
         resolve(base64Str);
       };
 
+      // Required for cross-origin images (some mobile browsers)
+      img.crossOrigin = 'anonymous';
       img.src = base64Str;
+    });
+  };
+
+  // Compress from File object directly (for gallery uploads - avoids HEIC issues)
+  const compressFile = (file: File, maxWidth = 512, maxHeight = 512): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      // Use createImageBitmap when available (handles EXIF orientation automatically)
+      if (typeof createImageBitmap !== 'undefined') {
+        createImageBitmap(file)
+          .then((bitmap) => {
+            const canvas = document.createElement('canvas');
+            let width = bitmap.width;
+            let height = bitmap.height;
+            const scale = Math.min(1, maxWidth / width, maxHeight / height);
+            width = Math.round(width * scale);
+            height = Math.round(height * scale);
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d')!;
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillRect(0, 0, width, height);
+            ctx.drawImage(bitmap, 0, 0, width, height);
+            bitmap.close();
+            const result = canvas.toDataURL('image/jpeg', 0.75);
+            console.log(`File compressed (bitmap): ${width}x${height}, size: ${Math.round(result.length / 1024)}KB`);
+            resolve(result);
+          })
+          .catch(() => {
+            // Fallback to FileReader approach
+            const reader = new FileReader();
+            reader.onloadend = async () => {
+              const compressed = await compressImage(reader.result as string, maxWidth, maxHeight);
+              resolve(compressed);
+            };
+            reader.onerror = () => reject(new Error('Failed to read file'));
+            reader.readAsDataURL(file);
+          });
+      } else {
+        // Fallback for older browsers
+        const reader = new FileReader();
+        reader.onloadend = async () => {
+          const compressed = await compressImage(reader.result as string, maxWidth, maxHeight);
+          resolve(compressed);
+        };
+        reader.onerror = () => reject(new Error('Failed to read file'));
+        reader.readAsDataURL(file);
+      }
     });
   };
 
@@ -182,16 +239,19 @@ export default function App() {
     }
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = async () => {
-        const compressed = await compressImage(reader.result as string);
-        setOriginalImage(compressed);
-        setIsCapturing(false);
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+    
+    try {
+      console.log(`File selected: ${file.name}, type: ${file.type}, size: ${Math.round(file.size / 1024)}KB`);
+      // Use compressFile which handles HEIC, EXIF orientation via createImageBitmap
+      const compressed = await compressFile(file);
+      setOriginalImage(compressed);
+      setIsCapturing(false);
+    } catch (err: any) {
+      console.error('File upload error:', err);
+      alert('Erro ao carregar a foto. Tente outra foto ou use a câmera.');
     }
   };
 
@@ -212,17 +272,20 @@ export default function App() {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 120000); // 120s timeout for mobile stability
 
+        const jsonBody = JSON.stringify({
+          base64Image: originalImage,
+          type: 'aging'
+        });
+        console.log(`Sending aging request, payload size: ${Math.round(jsonBody.length / 1024)}KB`);
+
         const res = await fetch('/api/transformar', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           signal: controller.signal,
-          keepalive: true, // Help with mobile connection stability
-          body: JSON.stringify({
-            base64Image: originalImage,
-            type: 'aging'
-          })
+          // NOTE: keepalive removed - it limits payload to 64KB on mobile browsers!
+          body: jsonBody
         });
         
         clearTimeout(timeoutId);
@@ -284,17 +347,20 @@ export default function App() {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 120000); // 120s timeout for mobile stability
 
+        const jsonBody = JSON.stringify({
+          base64Image: originalImage,
+          type: 'treatment'
+        });
+        console.log(`Sending treatment request, payload size: ${Math.round(jsonBody.length / 1024)}KB`);
+
         const res = await fetch('/api/transformar', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           signal: controller.signal,
-          keepalive: true, // Help with mobile connection stability
-          body: JSON.stringify({
-            base64Image: originalImage,
-            type: 'treatment'
-          })
+          // NOTE: keepalive removed - it limits payload to 64KB on mobile browsers!
+          body: jsonBody
         });
         
         clearTimeout(timeoutId);
@@ -565,7 +631,7 @@ export default function App() {
                         <label className="w-full py-4 rounded-2xl border border-slate-200 bg-white active:bg-slate-100 transition flex items-center justify-center gap-3 cursor-pointer text-slate-700 text-[15px] font-bold shadow-sm">
                           <Upload className="w-5 h-5 text-slate-500" />
                           <span>Procurar na Galeria...</span>
-                          <input type="file" accept="image/*" onChange={handleFileUpload} className="hidden" />
+                          <input type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,image/*" onChange={handleFileUpload} className="hidden" />
                         </label>
                       </div>
                     )
