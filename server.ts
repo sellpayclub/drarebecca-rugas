@@ -43,9 +43,9 @@ async function startServer() {
       // 2. Setup prompts based on transformation type
       let modificacoes = "";
       if (type === "aging") {
-        modificacoes = "realistic natural skin aging, moderate loss of skin elasticity, appearance of subtle fine lines and wrinkles, natural age spots, realistically aged by 5 years, slightly uneven skin tone. DO NOT EXAGGERATE. VERY NATURAL.";
+        modificacoes = "identical person, same features. ADD 70% MORE wrinkles: deep crow's feet (pé de galinha), prominent expression lines, nasolabial folds (bigode chinês), and neck wrinkles. Project aging ONLY on skin texture as if neglected. NO new heavy spots, NO change in facial structure. Natural aging projection.";
       } else if (type === "treatment") {
-        modificacoes = "premium aesthetic clinic treatment results, extremely well-cared mature skin, highly hydrated glowing skin, firm skin, perfectly even skin tone, elegant and natural rejuvenation, healthy radiant skin texture. DO NOT EXAGGERATE. VERY NATURAL.";
+        modificacoes = "identical person, same features. REMOVE 80% of all skin imperfections, wrinkles, and aging signs. Smooth and hydrated skin texture, rejuvenated appearance, well-cared for healthy skin. Keep facial features exactly the same, only youthful skin surface. Radiant and professional finish.";
       }
 
       const prompt = `Raw high-quality portrait photograph. 

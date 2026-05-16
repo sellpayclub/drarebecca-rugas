@@ -100,6 +100,7 @@ export default function App() {
     }
     
     setPhase('analyzing');
+    const startTime = Date.now();
     
     try {
       const res = await fetch('/api/transformar', {
@@ -116,8 +117,14 @@ export default function App() {
       const data = await res.json();
       
       if (data.imagemTransformada) {
-        setAgedImage(data.imagemTransformada);
-        setPhase('aged_result');
+        const elapsed = Date.now() - startTime;
+        const minWait = 4500; // 4.5 seconds min for analysis feel
+        const remaining = Math.max(0, minWait - elapsed);
+        
+        setTimeout(() => {
+          setAgedImage(data.imagemTransformada);
+          setPhase('aged_result');
+        }, remaining);
       } else {
         throw new Error(data.error || "Failed to analyze image");
       }
@@ -130,6 +137,7 @@ export default function App() {
 
   const applyTreatment = async () => {
     setPhase('processing_treatment');
+    const startTime = Date.now();
     
     try {
       const res = await fetch('/api/transformar', {
@@ -138,7 +146,7 @@ export default function App() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          base64Image: originalImage,
+          base64Image: originalImage, // Using original image as requested
           type: 'treatment'
         })
       });
@@ -146,8 +154,14 @@ export default function App() {
       const data = await res.json();
       
       if (data.imagemTransformada) {
-        setTreatedImage(data.imagemTransformada);
-        setPhase('treated_result');
+        const elapsed = Date.now() - startTime;
+        const minWait = 5500; // 5.5 seconds min for treatment feel
+        const remaining = Math.max(0, minWait - elapsed);
+
+        setTimeout(() => {
+          setTreatedImage(data.imagemTransformada);
+          setPhase('treated_result');
+        }, remaining);
       } else {
         throw new Error(data.error || "Failed to process image");
       }
@@ -159,7 +173,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-100 text-slate-900 font-sans selection:bg-indigo-100 flex flex-col items-center">
+    <div className="min-h-screen bg-slate-100 text-slate-900 font-sans selection:bg-emerald-100 flex flex-col items-center">
       {/* 100% Mobile App Container Constraint */}
       <div className="w-full max-w-[440px] mx-auto bg-slate-50 min-h-[100dvh] flex flex-col relative shadow-2xl shadow-slate-300">
         
@@ -177,7 +191,7 @@ export default function App() {
               >
                 <div className="mb-6 space-y-3 px-1">
                   <h1 className="text-[22px] sm:text-[26px] font-black text-slate-900 leading-snug text-center text-balance">
-                    Especialista revela <span className="text-red-600">verdadeiro motivo escondido na pele</span>, que está causando <span className="underline decoration-red-500 decoration-[3px] underline-offset-4">envelhecimento precoce</span>, e revela como se livrar das bactérias para <span className="bg-indigo-100 text-indigo-900 px-2 py-0.5 rounded-lg">parecer até 5 anos mais jovem</span> usando vinagre de maçã!
+                    Especialista revela <span className="text-red-600">verdadeiro motivo escondido na pele</span>, que está causando <span className="underline decoration-red-500 decoration-[3px] underline-offset-4">envelhecimento precoce</span>, e revela como se livrar das bactérias para <span className="bg-emerald-100 text-emerald-900 px-2 py-0.5 rounded-lg">parecer até 5 anos mais jovem</span> usando vinagre de maçã!
                   </h1>
                 </div>
 
@@ -202,7 +216,7 @@ export default function App() {
                       >
                         <button
                           onClick={() => setPhase('capture')}
-                          className="w-full py-5 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white text-[15px] font-black uppercase tracking-wide rounded-2xl shadow-lg shadow-indigo-600/20 transform transition flex items-center justify-center gap-2"
+                          className="w-full py-5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-[15px] font-black uppercase tracking-wide rounded-2xl shadow-lg shadow-emerald-600/20 transform transition flex items-center justify-center gap-2"
                         >
                           <Camera className="w-5 h-5 flex-shrink-0" />
                           Acessar Análise Facial
@@ -238,7 +252,7 @@ export default function App() {
                       value={firstName}
                       onChange={e => setFirstName(e.target.value)}
                       placeholder="Ex: Maria"
-                      className="w-full px-5 py-4 rounded-xl border-2 border-slate-200 bg-slate-50 text-lg font-medium focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 outline-none transition-all placeholder:font-normal placeholder:text-slate-400"
+                      className="w-full px-5 py-4 rounded-xl border-2 border-slate-200 bg-slate-50 text-lg font-medium focus:ring-2 focus:ring-emerald-600 focus:border-emerald-600 outline-none transition-all placeholder:font-normal placeholder:text-slate-400"
                     />
                   </div>
                   <div className="space-y-2">
@@ -246,7 +260,7 @@ export default function App() {
                     <select 
                       value={ageRange}
                       onChange={e => setAgeRange(e.target.value)}
-                      className="w-full px-5 py-4 rounded-xl border-2 border-slate-200 bg-slate-50 text-lg font-medium focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 outline-none transition-all appearance-none"
+                      className="w-full px-5 py-4 rounded-xl border-2 border-slate-200 bg-slate-50 text-lg font-medium focus:ring-2 focus:ring-emerald-600 focus:border-emerald-600 outline-none transition-all appearance-none"
                     >
                       <option value="" disabled>Selecione sua idade</option>
                       <option value="41-50">41 a 50 anos</option>
@@ -276,15 +290,15 @@ export default function App() {
                               <h4 className="font-black text-slate-800 text-sm uppercase tracking-wider">Como autorizar:</h4>
                               <ol className="space-y-4">
                                 <li className="flex gap-4 items-start">
-                                  <span className="w-6 h-6 rounded-full bg-indigo-600 text-white text-[12px] font-bold flex items-center justify-center shrink-0 mt-0.5">1</span>
+                                  <span className="w-6 h-6 rounded-full bg-emerald-600 text-white text-[12px] font-bold flex items-center justify-center shrink-0 mt-0.5">1</span>
                                   <p className="text-[14px] text-slate-700 leading-snug">Clique no <strong>ícone de cadeado</strong> ou <strong>configurações</strong> lá no topo perto do endereço do site.</p>
                                 </li>
                                 <li className="flex gap-4 items-start">
-                                  <span className="w-6 h-6 rounded-full bg-indigo-600 text-white text-[12px] font-bold flex items-center justify-center shrink-0 mt-0.5">2</span>
+                                  <span className="w-6 h-6 rounded-full bg-emerald-600 text-white text-[12px] font-bold flex items-center justify-center shrink-0 mt-0.5">2</span>
                                   <p className="text-[14px] text-slate-700 leading-snug">Procure a opção "Câmera" e mude para <strong>"Permitir"</strong>.</p>
                                 </li>
                                 <li className="flex gap-4 items-start">
-                                  <span className="w-6 h-6 rounded-full bg-indigo-600 text-white text-[12px] font-bold flex items-center justify-center shrink-0 mt-0.5">3</span>
+                                  <span className="w-6 h-6 rounded-full bg-emerald-600 text-white text-[12px] font-bold flex items-center justify-center shrink-0 mt-0.5">3</span>
                                   <p className="text-[14px] text-slate-700 leading-snug">Depois disso, atualize esta página.</p>
                                 </li>
                               </ol>
@@ -336,10 +350,10 @@ export default function App() {
                       <div className="w-full space-y-4">
                         <button 
                           onClick={() => setIsCapturing(true)}
-                          className="w-full py-10 rounded-3xl border-2 border-dashed border-slate-300 active:border-indigo-500 active:bg-indigo-50 transition flex flex-col items-center justify-center gap-4 text-slate-600 active:text-indigo-600 bg-white shadow-sm"
+                          className="w-full py-10 rounded-3xl border-2 border-dashed border-slate-300 active:border-emerald-500 active:bg-emerald-50 transition flex flex-col items-center justify-center gap-4 text-slate-600 active:text-emerald-600 bg-white shadow-sm"
                         >
-                          <div className="w-16 h-16 rounded-full bg-indigo-50 flex items-center justify-center">
-                            <Camera className="w-8 h-8 text-indigo-600" />
+                          <div className="w-16 h-16 rounded-full bg-emerald-50 flex items-center justify-center">
+                            <Camera className="w-8 h-8 text-emerald-600" />
                           </div>
                           <div className="text-center space-y-1">
                             <span className="text-[17px] font-black uppercase tracking-wider block">CLIQUE AQUI PARA TIRAR FOTO!</span>
@@ -380,10 +394,10 @@ export default function App() {
                       "w-full py-5 font-black uppercase tracking-wider text-[16px] rounded-2xl transform transition flex items-center justify-center gap-2",
                       (!originalImage || !firstName || !ageRange) 
                         ? "bg-slate-200 text-slate-400 cursor-not-allowed" 
-                        : "bg-indigo-600 active:bg-indigo-700 text-white shadow-lg shadow-indigo-600/20 active:-translate-y-1"
+                        : "bg-emerald-600 active:bg-emerald-700 text-white shadow-lg shadow-emerald-600/20 active:-translate-y-1"
                     )}
                   >
-                    Iniciar Varredura
+                    INICIAR ANÁLISE FACIAL!
                     <ChevronRight className="w-6 h-6" />
                   </button>
                 </div>
@@ -402,7 +416,7 @@ export default function App() {
                   <div className="w-40 h-40 rounded-full overflow-hidden border-4 border-slate-200 opacity-60 blur-[1px]">
                     <img src={originalImage!} alt="" className="w-full h-full object-cover grayscale" />
                   </div>
-                  <div className="absolute inset-0 flex items-center justify-center text-indigo-600">
+                  <div className="absolute inset-0 flex items-center justify-center text-emerald-600">
                     <RefreshCw className="w-12 h-12 animate-spin" />
                   </div>
                 </div>
@@ -477,9 +491,9 @@ export default function App() {
 
                 <button
                   onClick={applyTreatment}
-                  className="w-full py-5 bg-indigo-600 active:bg-indigo-700 text-white font-black uppercase tracking-widest text-[15px] rounded-2xl shadow-xl shadow-indigo-600/30 transform transition active:scale-95"
+                  className="w-full py-5 bg-emerald-600 active:bg-emerald-700 text-white font-black uppercase tracking-widest text-[15px] rounded-2xl shadow-xl shadow-emerald-600/30 transform transition active:scale-95"
                 >
-                  Ver Projeção com Tratamento
+                  CONTINUAR!
                 </button>
               </motion.div>
             )}
@@ -493,25 +507,25 @@ export default function App() {
                 className="flex-1 flex flex-col items-center justify-center space-y-8"
               >
                 <div className="relative">
-                  <div className="w-40 h-40 rounded-full overflow-hidden border-8 border-indigo-100 shadow-2xl">
+                  <div className="w-40 h-40 rounded-full overflow-hidden border-8 border-emerald-100 shadow-2xl">
                     <img src={agedImage!} alt="" className="w-full h-full object-cover blur-[2px] opacity-80" />
                   </div>
                   <div className="absolute inset-0 flex items-center justify-center gap-2">
-                    <Sparkles className="w-14 h-14 text-indigo-600 animate-pulse drop-shadow-lg" />
+                    <Sparkles className="w-14 h-14 text-emerald-600 animate-pulse drop-shadow-lg" />
                   </div>
                 </div>
                 
                 <div className="text-center space-y-3">
                   <h3 className="text-3xl font-black text-slate-900">Aplicando Protocolo...</h3>
                   <p className="text-[16px] font-medium text-slate-600 max-w-sm px-4 leading-relaxed">
-                    Reativando as bactérias boas para <strong className="text-indigo-600">rejuvenescer</strong> o seu rosto.
+                    Reativando as bactérias boas para <strong className="text-emerald-600">rejuvenescer</strong> o seu rosto.
                   </p>
                 </div>
 
                 <div className="w-full max-w-sm space-y-4">
-                  <LoadingStep text="Limpando bactérias ruins..." delay={0} icon={<div className="w-4 h-4 bg-indigo-600 rounded-sm shrink-0" />} />
-                  <LoadingStep text="Estimulando colágeno fresco..." delay={2} icon={<div className="w-4 h-4 bg-indigo-600 rounded-sm shrink-0" />} />
-                  <LoadingStep text="Renovando pele em 100%..." delay={4} icon={<div className="w-4 h-4 bg-indigo-600 rounded-sm shrink-0" />} />
+                  <LoadingStep text="Limpando bactérias ruins..." delay={0} />
+                  <LoadingStep text="Estimulando colágeno fresco..." delay={2} />
+                  <LoadingStep text="Renovando pele em 100%..." delay={4} />
                 </div>
               </motion.div>
             )}
@@ -528,14 +542,14 @@ export default function App() {
                   <h2 className="text-3xl font-black text-slate-900 leading-tight">
                     Você Rejuvenescida
                   </h2>
-                  <p className="text-[15px] uppercase font-black tracking-widest text-indigo-600">Com o tratamento correto!</p>
+                  <p className="text-[15px] uppercase font-black tracking-widest text-emerald-600">Com o tratamento correto!</p>
                 </div>
 
                 <div className="relative aspect-[3/4] mb-8 group">
-                  <div className="absolute inset-0 bg-indigo-50 border-[6px] border-indigo-400 rounded-3xl overflow-hidden shadow-2xl shadow-indigo-600/20">
+                  <div className="absolute inset-0 bg-emerald-50 border-[6px] border-emerald-400 rounded-3xl overflow-hidden shadow-2xl shadow-emerald-600/20">
                     <img src={treatedImage!} alt="Simulação Tratamento" className="w-full h-full object-cover" />
                   </div>
-                  <div className="absolute top-5 left-5 bg-indigo-600 text-white text-[13px] font-black px-4 py-2 rounded-lg uppercase tracking-widest flex items-center gap-2 shadow-lg shadow-indigo-600/30">
+                  <div className="absolute top-5 left-5 bg-emerald-600 text-white text-[13px] font-black px-4 py-2 rounded-lg uppercase tracking-widest flex items-center gap-2 shadow-lg shadow-emerald-600/30">
                     <Sparkles className="w-4 h-4" />
                     Com Tratamento
                   </div>
@@ -551,15 +565,15 @@ export default function App() {
                       "Células novas e cheias de colágeno substituem as rugas."
                     ].map((item, i) => (
                       <li key={i} className="flex gap-4 items-center bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
-                         <div className="w-8 h-8 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center text-[14px] font-black shrink-0">
+                         <div className="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center text-[14px] font-black shrink-0">
                            {i + 1}
                          </div>
                          <p className="text-[15px] leading-snug text-slate-800 font-bold">{item}</p>
                       </li>
                     ))}
                   </ul>
-                  <div className="p-6 bg-indigo-50 rounded-2xl border-2 border-indigo-100 mt-4 shadow-sm">
-                     <p className="text-[16px] font-bold text-indigo-900 leading-relaxed text-center">
+                  <div className="p-6 bg-emerald-50 rounded-2xl border-2 border-emerald-100 mt-4 shadow-sm">
+                     <p className="text-[16px] font-bold text-emerald-900 leading-relaxed text-center">
                        Sua pele mais firme, lisa e hidratada.<br/>Uma aparência de <strong>5 a 20 anos mais jovem!</strong>
                      </p>
                   </div>
@@ -567,10 +581,10 @@ export default function App() {
 
                 <button
                   onClick={() => setPhase('final_comparison')}
-                  className="w-full py-5 bg-slate-900 active:bg-slate-800 text-white text-[15px] font-black uppercase tracking-widest rounded-2xl shadow-xl shadow-slate-900/20 transform transition active:scale-95 flex items-center justify-center gap-3"
+                  className="w-full py-5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-[15px] font-black uppercase tracking-widest rounded-2xl shadow-xl shadow-emerald-600/20 transform transition active:scale-95 flex items-center justify-center gap-3"
                 >
                   Eu quero este tratamento!
-                  <ChevronRight className="w-5 h-5 text-slate-400" />
+                  <ChevronRight className="w-5 h-5 text-emerald-200" />
                 </button>
               </motion.div>
             )}
@@ -584,7 +598,7 @@ export default function App() {
                 className="flex-1 flex flex-col pb-12 w-full pt-4"
               >
                 <div className="text-center mb-8 space-y-3">
-                  <span className="text-[13px] font-black text-indigo-600 uppercase tracking-widest block bg-indigo-50 inline-block px-4 py-1.5 rounded-full">Recuperação Comprovada</span>
+                  <span className="text-[13px] font-black text-emerald-600 uppercase tracking-widest block bg-emerald-50 inline-block px-4 py-1.5 rounded-full">Recuperação Comprovada</span>
                   <h2 className="text-3xl sm:text-4xl font-black text-slate-900 leading-tight">Veja o Tratamento Ideal para Você</h2>
                 </div>
 
@@ -595,8 +609,8 @@ export default function App() {
                     </div>
                     <img src={agedImage!} alt="Aged" className="w-full aspect-[3/4] object-cover" />
                   </div>
-                  <div className="relative rounded-2xl overflow-hidden border-2 border-indigo-300 bg-indigo-50">
-                    <div className="absolute top-2 left-2 bg-indigo-600 text-white text-[10px] font-black px-3 py-1.5 rounded uppercase flex items-center tracking-widest z-10">
+                  <div className="relative rounded-2xl overflow-hidden border-2 border-emerald-300 bg-emerald-50">
+                    <div className="absolute top-2 left-2 bg-emerald-600 text-white text-[10px] font-black px-3 py-1.5 rounded uppercase flex items-center tracking-widest z-10">
                       Com Tratam.
                     </div>
                     <img src={treatedImage!} alt="Treated" className="w-full aspect-[3/4] object-cover" />
@@ -612,13 +626,13 @@ export default function App() {
                     />
                     <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center">
                       <button className="w-20 h-20 bg-white rounded-full flex flex-col items-center justify-center active:scale-95 transition-transform shadow-2xl shadow-white/20 ring-8 ring-white/20 mb-4">
-                        <Play className="w-8 h-8 text-indigo-600 ml-2" />
+                        <Play className="w-8 h-8 text-emerald-600 ml-2" />
                       </button>
                       <p className="text-white text-[14px] font-black uppercase tracking-widest drop-shadow-md">Aperte o Play no Vídeo</p>
                     </div>
                 </div>
                 
-                <button className="mt-10 w-full py-6 text-[16px] bg-indigo-600 active:bg-indigo-700 text-white font-black rounded-2xl shadow-2xl hover:-translate-y-1 active:translate-y-0 transition-transform uppercase tracking-widest">
+                <button className="mt-10 w-full py-6 text-[16px] bg-emerald-600 active:bg-emerald-700 text-white font-black rounded-2xl shadow-2xl hover:-translate-y-1 active:translate-y-0 transition-transform uppercase tracking-widest">
                   Comprar o Tratamento
                 </button>
               </motion.div>
@@ -646,7 +660,7 @@ function LoadingStep({ text, delay, icon }: { text: string, delay: number, icon?
       show ? "opacity-100" : "opacity-0"
     )}>
       {icon ? icon : (
-        <div className="w-6 h-6 rounded-full border-[3px] border-indigo-600 border-t-transparent animate-spin shrink-0" />
+        <div className="w-6 h-6 rounded-full border-[3px] border-emerald-600 border-t-transparent animate-spin shrink-0" />
       )}
       <span className="text-[15px] font-bold tracking-wide text-slate-800">{text}</span>
     </div>
