@@ -232,7 +232,7 @@ export default function App() {
                   </h1>
                 </div>
 
-                <div className="relative w-full rounded-3xl overflow-hidden shadow-xl shadow-slate-200 border border-slate-200 bg-black min-h-[250px] flex items-center justify-center">
+                <div className="relative w-full rounded-3xl overflow-hidden shadow-xl shadow-slate-200 border border-slate-200 bg-black min-h-[200px] flex items-center justify-center">
                   <div className="w-full">
                     <div dangerouslySetInnerHTML={{ __html: `
                       <div id="ifr_6a089158b6147a0d495dfff8_wrapper" style="margin: 0 auto; width: 100%; ">
@@ -242,25 +242,25 @@ export default function App() {
                       </div>
                     `}} />
                   </div>
-
-                  <AnimatePresence>
-                    {showFaceButton && (
-                      <motion.div
-                        initial={{ opacity: 0, y: 50 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="absolute bottom-6 left-6 right-6 z-20"
-                      >
-                        <button
-                          onClick={() => setPhase('capture')}
-                          className="w-full py-5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-[15px] font-black uppercase tracking-wide rounded-2xl shadow-lg shadow-emerald-600/20 transform transition flex items-center justify-center gap-2"
-                        >
-                          <Camera className="w-5 h-5 flex-shrink-0" />
-                          Acessar Análise Facial
-                        </button>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
                 </div>
+
+                <AnimatePresence>
+                  {showFaceButton && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 30 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="mt-8 px-2 pb-6"
+                    >
+                      <button
+                        onClick={() => setPhase('capture')}
+                        className="w-full py-6 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-[16px] font-black uppercase tracking-wide rounded-2xl shadow-xl shadow-emerald-600/30 transform transition active:scale-95 flex items-center justify-center gap-3"
+                      >
+                        <Camera className="w-6 h-6 flex-shrink-0" />
+                        Acessar Análise Facial
+                      </button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </motion.div>
             )}
 
