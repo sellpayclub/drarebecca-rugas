@@ -64,9 +64,10 @@ async function startServer() {
       The requested skin changes must be implemented PRECISELY on the original subject without altering their identity.
       Ensure the result looks completely natural and photorealistic. DO NOT smooth skin like a cheap filter. Keep realistic skin texture.`;
 
-      // 3. Call AI
-      console.log(`[${requestId}] Starting Fal.ai generation...`);
-      const result = await fal.subscribe('fal-ai/flux-2-lora-gallery/face-to-full-portrait', {
+      // 3. Call AI with explicit logging and timeout
+      console.log(`[${requestId}] Starting Fal.ai generation (${type})...`);
+      
+      const generatePromise = fal.subscribe('fal-ai/flux-2-lora-gallery/face-to-full-portrait', {
         input: {
           image_urls: [imageUrl],
           prompt: prompt,
@@ -75,13 +76,21 @@ async function startServer() {
           output_format: 'png',
           num_images: 1,
           lora_scale: 0.85,
-        }
+        },
+        logs: true
       });
 
+      // 45s server-side timeout for the subscription
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error("Timeout na geração da IA (45s)")), 45000)
+      );
+
+      const result: any = await Promise.race([generatePromise, timeoutPromise]);
       console.log(`[${requestId}] Generation complete!`);
       
       if (!result.data || !result.data.images || result.data.images.length === 0) {
-        throw new Error("No images returned from Fal.ai");
+        console.error(`[${requestId}] No images in result:`, result);
+        throw new Error("O motor de IA não retornou imagens.");
       }
 
       // 4. Return to frontend

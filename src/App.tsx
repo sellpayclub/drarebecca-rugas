@@ -31,6 +31,19 @@ const VSLPlayer = React.memo(() => (
   </div>
 ));
 
+// Final VSL Player Component for the result page
+const FinalVSLPlayer = React.memo(() => (
+  <div className="w-full">
+    <div dangerouslySetInnerHTML={{ __html: `
+      <div id="ifr_6a08dabf9a5df223bbe2f2a9_wrapper" style="margin: 0 auto; width: 100%; ">
+        <div style="position: relative; padding: 56.25% 0 0 0;" id="ifr_6a08dabf9a5df223bbe2f2a9_aspect">
+          <iframe frameborder="0" allowfullscreen src="about:blank" id="ifr_6a08dabf9a5df223bbe2f2a9" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;" referrerpolicy="origin" onload="this.onload=null, this.src=\'https://scripts.converteai.net/ceaefeeb-feef-4b52-8911-9ec9de0d5b6b/players/6a08dabf9a5df223bbe2f2a9/v4/embed.html\' +(location.search||\'?\') +\'&vl=\' +encodeURIComponent(location.href)"></iframe>
+        </div>
+      </div>
+    `}} />
+  </div>
+));
+
 export default function App() {
   const [phase, setPhase] = useState<FunnelPhase>('video_intro');
   const [showFaceButton, setShowFaceButton] = useState(false);
@@ -169,27 +182,38 @@ export default function App() {
 
     const performAnalysis = async (): Promise<void> => {
       try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout
+
         const res = await fetch('/api/transformar', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
+          signal: controller.signal,
           body: JSON.stringify({
             base64Image: originalImage,
             type: 'aging'
           })
         });
         
+        clearTimeout(timeoutId);
+
         if (!res.ok) {
           const errorText = await res.text();
-          throw new Error(`Server error (${res.status}): ${errorText}`);
+          let msg = `Erro no servidor (${res.status})`;
+          try {
+            const json = JSON.parse(errorText);
+            if (json.error) msg = json.error;
+          } catch(e) {}
+          throw new Error(msg);
         }
 
         const data = await res.json();
         
         if (data.imagemTransformada) {
           const elapsed = Date.now() - startTime;
-          const minWait = 7500; // 7.5 seconds min for analysis feel
+          const minWait = 7500; 
           const remaining = Math.max(0, minWait - elapsed);
           
           setTimeout(() => {
@@ -197,18 +221,17 @@ export default function App() {
             setPhase('aged_result');
           }, remaining);
         } else {
-          throw new Error(data.error || "Failed to analyze image");
+          throw new Error(data.error || "Falha ao analisar imagem");
         }
-      } catch (err) {
+      } catch (err: any) {
         console.warn(`Analysis attempt ${attempts + 1} failed:`, err);
-        if (attempts < maxAttempts) {
+        if (attempts < maxAttempts && err.name !== 'AbortError') {
           attempts++;
-          // Wait a bit before retry
-          await new Promise(r => setTimeout(r, 1000));
+          await new Promise(r => setTimeout(r, 2000));
           return performAnalysis();
         }
-        console.error("Analysis exhausted retries:", err);
-        alert("Houve um pequeno problema de conexão devido ao alto tráfego. Por favor, tente tirar a foto novamente.");
+        console.error("Analysis failed:", err);
+        alert(err.name === 'AbortError' ? "A conexão demorou muito. Tente novamente." : "Houve um problema de conexão: " + err.message);
         setPhase('capture');
       }
     };
@@ -225,27 +248,38 @@ export default function App() {
 
     const performTreatment = async (): Promise<void> => {
       try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout
+
         const res = await fetch('/api/transformar', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
+          signal: controller.signal,
           body: JSON.stringify({
-            base64Image: originalImage, // Using original image as requested
+            base64Image: originalImage,
             type: 'treatment'
           })
         });
         
+        clearTimeout(timeoutId);
+
         if (!res.ok) {
           const errorText = await res.text();
-          throw new Error(`Server error (${res.status}): ${errorText}`);
+          let msg = `Erro no servidor (${res.status})`;
+          try {
+            const json = JSON.parse(errorText);
+            if (json.error) msg = json.error;
+          } catch(e) {}
+          throw new Error(msg);
         }
 
         const data = await res.json();
         
         if (data.imagemTransformada) {
           const elapsed = Date.now() - startTime;
-          const minWait = 8500; // 8.5 seconds min for treatment feel
+          const minWait = 8500; 
           const remaining = Math.max(0, minWait - elapsed);
 
           setTimeout(() => {
@@ -253,18 +287,17 @@ export default function App() {
             setPhase('treated_result');
           }, remaining);
         } else {
-          throw new Error(data.error || "Failed to process image");
+          throw new Error(data.error || "Falha ao processar imagem");
         }
-      } catch (err) {
+      } catch (err: any) {
         console.warn(`Treatment attempt ${attempts + 1} failed:`, err);
-        if (attempts < maxAttempts) {
+        if (attempts < maxAttempts && err.name !== 'AbortError') {
           attempts++;
-          // Wait a bit before retry
-          await new Promise(r => setTimeout(r, 1000));
+          await new Promise(r => setTimeout(r, 2000));
           return performTreatment();
         }
-        console.error("Treatment exhausted retries:", err);
-        alert("Erro de conexão no processamento. Por favor, tente novamente.");
+        console.error("Treatment failed:", err);
+        alert(err.name === 'AbortError' ? "A conexão demorou muito no processamento. Tente novamente." : "Erro de conexão: " + err.message);
         setPhase('aged_result');
       }
     };
@@ -559,8 +592,8 @@ export default function App() {
                   <div className="w-full h-2.5 bg-slate-200 rounded-full overflow-hidden shadow-inner border border-slate-300/50">
                     <motion.div 
                       initial={{ width: 0 }}
-                      animate={{ width: "95%" }}
-                      transition={{ duration: 7, ease: "easeOut" }}
+                      animate={{ width: ["0%", "40%", "70%", "95%"] }}
+                      transition={{ duration: 15, times: [0, 0.1, 0.4, 1], ease: "linear" }}
                       className="h-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]"
                     />
                   </div>
@@ -669,8 +702,8 @@ export default function App() {
                   <div className="w-full h-2.5 bg-slate-200 rounded-full overflow-hidden shadow-inner border border-slate-300/50">
                     <motion.div 
                       initial={{ width: 0 }}
-                      animate={{ width: "95%" }}
-                      transition={{ duration: 8, ease: "easeOut" }}
+                      animate={{ width: ["0%", "30%", "60%", "95%"] }}
+                      transition={{ duration: 16, times: [0, 0.1, 0.5, 1], ease: "linear" }}
                       className="h-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]"
                     />
                   </div>
@@ -770,24 +803,10 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* VSL Final Video Placeholder */}
-                <div className="relative w-full aspect-video bg-slate-900 rounded-3xl overflow-hidden shadow-2xl ring-4 ring-slate-100">
-                    <img 
-                      src="https://images.unsplash.com/photo-1579684385127-1ef15d508118?auto=format&fit=crop&q=80&w=800&h=450" 
-                      className="w-full h-full object-cover opacity-60 mix-blend-overlay" 
-                      alt="Video thumbnail"
-                    />
-                    <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center">
-                      <button className="w-20 h-20 bg-white rounded-full flex flex-col items-center justify-center active:scale-95 transition-transform shadow-2xl shadow-white/20 ring-8 ring-white/20 mb-4">
-                        <Play className="w-8 h-8 text-emerald-600 ml-2" />
-                      </button>
-                      <p className="text-white text-[14px] font-black uppercase tracking-widest drop-shadow-md">Aperte o Play no Vídeo</p>
-                    </div>
+                {/* VSL Final Video */}
+                <div className="relative w-full rounded-3xl overflow-hidden shadow-2xl ring-4 ring-slate-100 bg-black min-h-[200px] flex items-center justify-center">
+                    <FinalVSLPlayer />
                 </div>
-                
-                <button className="mt-10 w-full py-6 text-[16px] bg-emerald-600 active:bg-emerald-700 text-white font-black rounded-2xl shadow-2xl hover:-translate-y-1 active:translate-y-0 transition-transform uppercase tracking-widest">
-                  Comprar o Tratamento
-                </button>
               </motion.div>
             )}
 
