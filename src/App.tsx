@@ -32,6 +32,37 @@ export default function App() {
   const webcamRef = useRef<Webcam>(null);
   const mainContentRef = useRef<HTMLDivElement>(null);
 
+  // Image compression utility
+  const compressImage = (base64Str: string, maxWidth = 1024, maxHeight = 1024): Promise<string> => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.src = base64Str;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > maxWidth) {
+            height *= maxWidth / width;
+            width = maxWidth;
+          }
+        } else {
+          if (height > maxHeight) {
+            width *= maxHeight / height;
+            height = maxHeight;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx?.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', 0.85)); // 85% quality is plenty
+      };
+    });
+  };
+
   // Load SmartPlayer script once
   useEffect(() => {
     const s = document.createElement("script");
@@ -75,20 +106,44 @@ export default function App() {
   // Video phase logic button delay
   useEffect(() => {
     if (phase === 'video_intro') {
+      // Check if already unlocked
+      if (localStorage.getItem('vsl_unlocked') === 'true') {
+        setShowFaceButton(true);
+        return;
+      }
+
       // 26 minutes and 35 seconds delay
       const BUTTON_DELAY_MS = (26 * 60 + 35) * 1000;
-      const timer = setTimeout(() => {
+      const savedStart = localStorage.getItem('vsl_start_time');
+      const startTime = savedStart ? parseInt(savedStart) : Date.now();
+      
+      if (!savedStart) {
+        localStorage.setItem('vsl_start_time', startTime.toString());
+      }
+      
+      const elapsed = Date.now() - startTime;
+      const remaining = Math.max(0, BUTTON_DELAY_MS - elapsed);
+      
+      const unlock = () => {
         setShowFaceButton(true);
-      }, BUTTON_DELAY_MS); 
-      return () => clearTimeout(timer);
+        localStorage.setItem('vsl_unlocked', 'true');
+      };
+
+      if (remaining === 0) {
+        unlock();
+      } else {
+        const timer = setTimeout(unlock, remaining);
+        return () => clearTimeout(timer);
+      }
     }
   }, [phase]);
 
-  const captureFace = () => {
+  const captureFace = async () => {
     if (webcamRef.current) {
       const imageSrc = webcamRef.current.getScreenshot();
       if (imageSrc) {
-        setOriginalImage(imageSrc);
+        const compressed = await compressImage(imageSrc);
+        setOriginalImage(compressed);
         setIsCapturing(false);
       }
     }
@@ -98,8 +153,9 @@ export default function App() {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setOriginalImage(reader.result as string);
+      reader.onloadend = async () => {
+        const compressed = await compressImage(reader.result as string);
+        setOriginalImage(compressed);
         setIsCapturing(false);
       };
       reader.readAsDataURL(file);
@@ -115,74 +171,112 @@ export default function App() {
     setPhase('analyzing');
     const startTime = Date.now();
     
-    try {
-      const res = await fetch('/api/transformar', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          base64Image: originalImage,
-          type: 'aging'
-        })
-      });
-      
-      const data = await res.json();
-      
-      if (data.imagemTransformada) {
-        const elapsed = Date.now() - startTime;
-        const minWait = 4500; // 4.5 seconds min for analysis feel
-        const remaining = Math.max(0, minWait - elapsed);
+    let attempts = 0;
+    const maxAttempts = 2;
+
+    const performAnalysis = async (): Promise<void> => {
+      try {
+        const res = await fetch('/api/transformar', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            base64Image: originalImage,
+            type: 'aging'
+          })
+        });
         
-        setTimeout(() => {
-          setAgedImage(data.imagemTransformada);
-          setPhase('aged_result');
-        }, remaining);
-      } else {
-        throw new Error(data.error || "Failed to analyze image");
+        if (!res.ok) {
+          const errorText = await res.text();
+          throw new Error(`Server error (${res.status}): ${errorText}`);
+        }
+
+        const data = await res.json();
+        
+        if (data.imagemTransformada) {
+          const elapsed = Date.now() - startTime;
+          const minWait = 4500; // 4.5 seconds min for analysis feel
+          const remaining = Math.max(0, minWait - elapsed);
+          
+          setTimeout(() => {
+            setAgedImage(data.imagemTransformada);
+            setPhase('aged_result');
+          }, remaining);
+        } else {
+          throw new Error(data.error || "Failed to analyze image");
+        }
+      } catch (err) {
+        console.warn(`Analysis attempt ${attempts + 1} failed:`, err);
+        if (attempts < maxAttempts) {
+          attempts++;
+          // Wait a bit before retry
+          await new Promise(r => setTimeout(r, 1000));
+          return performAnalysis();
+        }
+        console.error("Analysis exhausted retries:", err);
+        alert("Houve um pequeno problema de conexão devido ao alto tráfego. Por favor, tente tirar a foto novamente.");
+        setPhase('capture');
       }
-    } catch (err) {
-      console.error(err);
-      alert("Houve um pequeno problema de conexão. Tente novamente.");
-      setPhase('capture');
-    }
+    };
+
+    await performAnalysis();
   };
 
   const applyTreatment = async () => {
     setPhase('processing_treatment');
     const startTime = Date.now();
     
-    try {
-      const res = await fetch('/api/transformar', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          base64Image: originalImage, // Using original image as requested
-          type: 'treatment'
-        })
-      });
-      
-      const data = await res.json();
-      
-      if (data.imagemTransformada) {
-        const elapsed = Date.now() - startTime;
-        const minWait = 5500; // 5.5 seconds min for treatment feel
-        const remaining = Math.max(0, minWait - elapsed);
+    let attempts = 0;
+    const maxAttempts = 2;
 
-        setTimeout(() => {
-          setTreatedImage(data.imagemTransformada);
-          setPhase('treated_result');
-        }, remaining);
-      } else {
-        throw new Error(data.error || "Failed to process image");
+    const performTreatment = async (): Promise<void> => {
+      try {
+        const res = await fetch('/api/transformar', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            base64Image: originalImage, // Using original image as requested
+            type: 'treatment'
+          })
+        });
+        
+        if (!res.ok) {
+          const errorText = await res.text();
+          throw new Error(`Server error (${res.status}): ${errorText}`);
+        }
+
+        const data = await res.json();
+        
+        if (data.imagemTransformada) {
+          const elapsed = Date.now() - startTime;
+          const minWait = 5500; // 5.5 seconds min for treatment feel
+          const remaining = Math.max(0, minWait - elapsed);
+
+          setTimeout(() => {
+            setTreatedImage(data.imagemTransformada);
+            setPhase('treated_result');
+          }, remaining);
+        } else {
+          throw new Error(data.error || "Failed to process image");
+        }
+      } catch (err) {
+        console.warn(`Treatment attempt ${attempts + 1} failed:`, err);
+        if (attempts < maxAttempts) {
+          attempts++;
+          // Wait a bit before retry
+          await new Promise(r => setTimeout(r, 1000));
+          return performTreatment();
+        }
+        console.error("Treatment exhausted retries:", err);
+        alert("Erro de conexão no processamento. Por favor, tente novamente.");
+        setPhase('aged_result');
       }
-    } catch (err) {
-      console.error(err);
-      alert("Erro ao aplicar tratamento. Tente novamente.");
-      setPhase('aged_result');
-    }
+    };
+
+    await performTreatment();
   };
 
   return (
@@ -356,6 +450,11 @@ export default function App() {
                           </div>
                         ) : (
                           <>
+                            <div className="absolute top-4 left-4 right-16 z-20">
+                              <div className="bg-emerald-600/95 backdrop-blur-sm text-white text-[10px] font-black py-2.5 px-4 rounded-xl shadow-lg border border-emerald-400/30 uppercase tracking-tighter leading-tight">
+                                ⚠️ Clique em "PERMITIR" no aviso acima para ligar sua câmera
+                              </div>
+                            </div>
                             <Webcam
                               audio={false}
                               ref={webcamRef}
@@ -363,6 +462,12 @@ export default function App() {
                               onUserMediaError={handleUserMediaError}
                               videoConstraints={{ facingMode: FACING_MODES.USER }}
                               className="w-full h-full object-cover aspect-[3/4]"
+                              mirrored={true}
+                              forceScreenshotSourceSize={false}
+                              imageSmoothing={true}
+                              disablePictureInPicture={true}
+                              screenshotQuality={0.92}
+                              onUserMedia={() => {}}
                             />
                             <div className="absolute top-4 right-4 z-10">
                               <button 
@@ -680,7 +785,7 @@ export default function App() {
         {/* FOOTER */}
         <footer className="px-6 py-8 bg-slate-100 border-t border-slate-200 text-center space-y-6">
           <p className="text-[11px] text-slate-500 leading-relaxed font-medium">
-            Este produto não se destina a diagnosticar, tratar, curar ou prevenir qualquer doença. Os resultados podem variar de pessoa para pessoa. Este site não é afiliado ao Facebook, Google, YouTube ou a qualquer de suas entidades. Depois que você sair do Facebook, Google ou YouTube, a responsabilidade não é deles e sim do nosso site.
+            Este vídeo não se destina a diagnosticar, tratar, curar ou prevenir qualquer doença. Os resultados podem variar de pessoa para pessoa. Este site não é afiliado ao Facebook, Google, YouTube ou a qualquer de suas entidades. Depois que você sair do Facebook, Google ou YouTube, a responsabilidade não é deles e sim do nosso site.
           </p>
           <div className="space-y-1">
             <p className="text-[11px] font-black text-slate-700 uppercase tracking-widest">

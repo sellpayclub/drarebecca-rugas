@@ -21,6 +21,7 @@ async function startServer() {
 
   // API Route for Fal AI processing
   app.post("/api/transformar", async (req, res) => {
+    const requestId = Math.random().toString(36).substring(7);
     try {
       const { base64Image, type } = req.body;
       
@@ -28,17 +29,23 @@ async function startServer() {
         return res.status(400).json({ error: "No image provided" });
       }
 
-      console.log(`Processing image for type: ${type}`);
+      const payloadSizeKb = Math.round(base64Image.length / 1024);
+      console.log(`[${requestId}] Processing image for type: ${type} (Payload: ${payloadSizeKb}KB)`);
 
       // 1. Convert and upload to fal.ai storage
-      const base64Data = base64Image.split(',')[1];
-      const mimeType = base64Image.split(';')[0].split(':')[1] || 'image/jpeg';
+      const parts = base64Image.split(',');
+      if (parts.length < 2) {
+        throw new Error("Invalid base64 image format");
+      }
+      const base64Data = parts[1];
+      const mimeType = parts[0].split(';')[0].split(':')[1] || 'image/jpeg';
       const buffer = Buffer.from(base64Data, 'base64');
       const blob = new Blob([buffer], { type: mimeType });
       const file = new File([blob], `img-${Date.now()}.jpg`, { type: mimeType });
       
+      console.log(`[${requestId}] Uploading to Fal storage...`);
       const imageUrl = await fal.storage.upload(file);
-      console.log("Image uploaded to Fal storage:", imageUrl);
+      console.log(`[${requestId}] Image uploaded:`, imageUrl);
 
       // 2. Setup prompts based on transformation type
       let modificacoes = "";
@@ -57,9 +64,8 @@ async function startServer() {
       The requested skin changes must be implemented PRECISELY on the original subject without altering their identity.
       Ensure the result looks completely natural and photorealistic. DO NOT smooth skin like a cheap filter. Keep realistic skin texture.`;
 
-
       // 3. Call AI
-      console.log("Starting Fal.ai generation...");
+      console.log(`[${requestId}] Starting Fal.ai generation...`);
       const result = await fal.subscribe('fal-ai/flux-2-lora-gallery/face-to-full-portrait', {
         input: {
           image_urls: [imageUrl],
@@ -72,16 +78,28 @@ async function startServer() {
         }
       });
 
-      console.log("Generation complete!");
+      console.log(`[${requestId}] Generation complete!`);
       
+      if (!result.data || !result.data.images || result.data.images.length === 0) {
+        throw new Error("No images returned from Fal.ai");
+      }
+
       // 4. Return to frontend
       return res.json({ 
         imagemTransformada: result.data.images[0].url 
       });
 
     } catch (error: any) {
-      console.error("Error generating image:", error);
-      return res.status(500).json({ error: error.message || "Erro ao gerar imagem" });
+      console.error(`[${requestId}] Error processing image:`, error);
+      // Clean up common error messages for user
+      let message = "Erro ao processar imagem";
+      if (error.message?.includes("limit")) message = "Limite de processamento atingido. Tente em alguns instantes.";
+      if (error.message?.includes("fal")) message = "Falha na comunicação com o motor de IA.";
+      
+      return res.status(500).json({ 
+        error: message,
+        details: process.env.NODE_ENV === "development" ? error.message : undefined
+      });
     }
   });
 
