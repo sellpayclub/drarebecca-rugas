@@ -50,6 +50,7 @@ export default function App() {
     return new Promise((resolve) => {
       const img = new Image();
       img.src = base64Str;
+      img.crossOrigin = "anonymous";
       img.onload = () => {
         const canvas = document.createElement('canvas');
         let width = img.width;
@@ -70,14 +71,28 @@ export default function App() {
         canvas.width = width;
         canvas.height = height;
         const ctx = canvas.getContext('2d');
-        ctx?.drawImage(img, 0, 0, width, height);
-        resolve(canvas.toDataURL('image/jpeg', 0.85)); // 85% quality is plenty
+        if (ctx) {
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = 'high';
+          ctx.drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL('image/jpeg', 0.85));
+        } else {
+          resolve(base64Str);
+        }
       };
+      img.onerror = () => resolve(base64Str);
     });
   };
 
-  // Load SmartPlayer script once
+  // Routing & Initialization
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const path = window.location.pathname;
+    if (params.get('p') === 'capture' || path === '/analise') {
+      setPhase('capture');
+    }
+
+    // Load SmartPlayer script
     const s = document.createElement("script");
     s.src = "https://scripts.converteai.net/lib/js/smartplayer-wc/v4/sdk.js";
     s.async = true;
@@ -115,41 +130,6 @@ export default function App() {
     console.error("Camera error:", error);
     setCameraError("permission_denied");
   };
-
-  // Video phase logic button delay
-  useEffect(() => {
-    if (phase === 'video_intro') {
-      // Check if already unlocked
-      if (localStorage.getItem('vsl_unlocked') === 'true') {
-        setShowFaceButton(true);
-        return;
-      }
-
-      // 26 minutes and 35 seconds delay
-      const BUTTON_DELAY_MS = (26 * 60 + 35) * 1000;
-      const savedStart = localStorage.getItem('vsl_start_time');
-      const startTime = savedStart ? parseInt(savedStart) : Date.now();
-      
-      if (!savedStart) {
-        localStorage.setItem('vsl_start_time', startTime.toString());
-      }
-      
-      const elapsed = Date.now() - startTime;
-      const remaining = Math.max(0, BUTTON_DELAY_MS - elapsed);
-      
-      const unlock = () => {
-        setShowFaceButton(true);
-        localStorage.setItem('vsl_unlocked', 'true');
-      };
-
-      if (remaining === 0) {
-        unlock();
-      } else {
-        const timer = setTimeout(unlock, remaining);
-        return () => clearTimeout(timer);
-      }
-    }
-  }, [phase]);
 
   const captureFace = async () => {
     if (webcamRef.current) {
@@ -343,23 +323,14 @@ export default function App() {
                   <VSLPlayer />
                 </div>
 
-                <AnimatePresence>
-                  {showFaceButton && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 30 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="mt-8 px-2 pb-6"
-                    >
-                      <button
-                        onClick={() => setPhase('capture')}
-                        className="w-full py-6 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-[16px] font-black uppercase tracking-wide rounded-2xl shadow-xl shadow-emerald-600/30 transform transition active:scale-95 flex items-center justify-center gap-3"
-                      >
-                        <Camera className="w-6 h-6 flex-shrink-0" />
-                        Acessar Análise Facial
-                      </button>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                {showFaceButton && (
+                  <button 
+                    onClick={() => setPhase('capture')}
+                    className="mt-10 w-full py-6 bg-emerald-600 text-white font-black rounded-2xl shadow-2xl uppercase tracking-[0.1em] text-[15px] animate-bounce"
+                  >
+                    INICIAR ANÁLISE FACIAL AGORA!
+                  </button>
+                )}
               </motion.div>
             )}
 
@@ -408,89 +379,92 @@ export default function App() {
                 <div className="flex-1 flex flex-col items-center gap-4">
                   {!originalImage ? (
                     isCapturing ? (
-                      <div className="relative w-full overflow-hidden rounded-3xl bg-slate-100 border-2 border-slate-200">
-                        {cameraError === 'permission_denied' ? (
-                          <div className="p-8 flex flex-col items-center text-center space-y-6">
-                            <div className="w-20 h-20 rounded-full bg-red-100 flex items-center justify-center">
-                              <Camera className="w-10 h-10 text-red-500" />
-                            </div>
-                            <div className="space-y-3">
-                              <h3 className="text-xl font-black text-slate-900">Acesso Negado</h3>
-                              <p className="text-slate-600 leading-relaxed font-medium">
-                                Para tirar a foto, você precisa autorizar o uso da câmera. 
-                              </p>
-                            </div>
-                            
-                            <div className="bg-white p-5 rounded-2xl border border-slate-200 text-left w-full space-y-4 shadow-sm">
-                              <h4 className="font-black text-slate-800 text-sm uppercase tracking-wider">Como autorizar:</h4>
-                              <ol className="space-y-4">
-                                <li className="flex gap-4 items-start">
-                                  <span className="w-6 h-6 rounded-full bg-emerald-600 text-white text-[12px] font-bold flex items-center justify-center shrink-0 mt-0.5">1</span>
-                                  <p className="text-[14px] text-slate-700 leading-snug">Clique no <strong>ícone de cadeado</strong> ou <strong>configurações</strong> lá no topo perto do endereço do site.</p>
-                                </li>
-                                <li className="flex gap-4 items-start">
-                                  <span className="w-6 h-6 rounded-full bg-emerald-600 text-white text-[12px] font-bold flex items-center justify-center shrink-0 mt-0.5">2</span>
-                                  <p className="text-[14px] text-slate-700 leading-snug">Procure a opção "Câmera" e mude para <strong>"Permitir"</strong>.</p>
-                                </li>
-                                <li className="flex gap-4 items-start">
-                                  <span className="w-6 h-6 rounded-full bg-emerald-600 text-white text-[12px] font-bold flex items-center justify-center shrink-0 mt-0.5">3</span>
-                                  <p className="text-[14px] text-slate-700 leading-snug">Depois disso, atualize esta página.</p>
-                                </li>
-                              </ol>
-                            </div>
-
-                            <button 
-                              onClick={() => window.location.reload()}
-                              className="w-full py-4 bg-slate-900 text-white font-black rounded-2xl uppercase tracking-widest text-[14px]"
-                            >
-                              Atualizar Página
-                            </button>
-                            
-                            <button 
-                              onClick={() => setIsCapturing(false)}
-                              className="text-slate-500 font-bold text-sm underline underline-offset-4"
-                            >
-                              Voltar
-                            </button>
+                      <div className="w-full flex flex-col gap-4">
+                        {cameraError !== 'permission_denied' && (
+                          <div className="bg-emerald-600 text-white text-[12px] font-black py-4 px-6 rounded-2xl shadow-lg border border-emerald-400/30 uppercase tracking-tighter leading-tight animate-bounce">
+                            ⚠️ Clique em "PERMITIR" no aviso que apareceu no seu navegador para ligar sua câmera
                           </div>
-                        ) : (
-                          <>
-                            <div className="absolute top-4 left-4 right-16 z-20">
-                              <div className="bg-emerald-600/95 backdrop-blur-sm text-white text-[10px] font-black py-2.5 px-4 rounded-xl shadow-lg border border-emerald-400/30 uppercase tracking-tighter leading-tight">
-                                ⚠️ Clique em "PERMITIR" no aviso acima para ligar sua câmera
+                        )}
+                        
+                        <div className="relative w-full overflow-hidden rounded-3xl bg-slate-100 border-2 border-slate-200 shadow-xl">
+                          {cameraError === 'permission_denied' ? (
+                            <div className="p-8 flex flex-col items-center text-center space-y-6">
+                              <div className="w-20 h-20 rounded-full bg-red-100 flex items-center justify-center">
+                                <Camera className="w-10 h-10 text-red-500" />
                               </div>
-                            </div>
-                            <Webcam
-                              audio={false}
-                              ref={webcamRef}
-                              screenshotFormat="image/jpeg"
-                              onUserMediaError={handleUserMediaError}
-                              videoConstraints={{ facingMode: FACING_MODES.USER }}
-                              className="w-full h-full object-cover aspect-[3/4]"
-                              mirrored={true}
-                              forceScreenshotSourceSize={false}
-                              imageSmoothing={true}
-                              disablePictureInPicture={true}
-                              screenshotQuality={0.92}
-                              onUserMedia={() => {}}
-                            />
-                            <div className="absolute top-4 right-4 z-10">
+                              <div className="space-y-3">
+                                <h3 className="text-xl font-black text-slate-900">Acesso Negado</h3>
+                                <p className="text-slate-600 leading-relaxed font-medium">
+                                  Para tirar a foto, você precisa autorizar o uso da câmera. 
+                                </p>
+                              </div>
+                              
+                              <div className="bg-white p-5 rounded-2xl border border-slate-200 text-left w-full space-y-4 shadow-sm">
+                                <h4 className="font-black text-slate-800 text-sm uppercase tracking-wider">Como autorizar:</h4>
+                                <ol className="space-y-4">
+                                  <li className="flex gap-4 items-start">
+                                    <span className="w-6 h-6 rounded-full bg-emerald-600 text-white text-[12px] font-bold flex items-center justify-center shrink-0 mt-0.5">1</span>
+                                    <p className="text-[14px] text-slate-700 leading-snug">Clique no <strong>ícone de cadeado</strong> ou <strong>configurações</strong> lá no topo perto do endereço do site.</p>
+                                  </li>
+                                  <li className="flex gap-4 items-start">
+                                    <span className="w-6 h-6 rounded-full bg-emerald-600 text-white text-[12px] font-bold flex items-center justify-center shrink-0 mt-0.5">2</span>
+                                    <p className="text-[14px] text-slate-700 leading-snug">Procure a opção "Câmera" e mude para <strong>"Permitir"</strong>.</p>
+                                  </li>
+                                  <li className="flex gap-4 items-start">
+                                    <span className="w-6 h-6 rounded-full bg-emerald-600 text-white text-[12px] font-bold flex items-center justify-center shrink-0 mt-0.5">3</span>
+                                    <p className="text-[14px] text-slate-700 leading-snug">Depois disso, atualize esta página.</p>
+                                  </li>
+                                </ol>
+                              </div>
+
+                              <button 
+                                onClick={() => window.location.reload()}
+                                className="w-full py-4 bg-slate-900 text-white font-black rounded-2xl uppercase tracking-widest text-[14px]"
+                              >
+                                Atualizar Página
+                              </button>
+                              
                               <button 
                                 onClick={() => setIsCapturing(false)}
-                                className="bg-black/50 text-white px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider backdrop-blur-md"
+                                className="text-slate-500 font-bold text-sm underline underline-offset-4"
                               >
-                                Cancelar
+                                Voltar
                               </button>
                             </div>
-                            <div className="absolute bottom-6 inset-x-0 flex justify-center flex-col items-center gap-3">
-                              <button 
-                                onClick={captureFace}
-                                className="w-20 h-20 rounded-full border-4 border-white bg-white/20 backdrop-blur-sm flex items-center justify-center hover:bg-white/40 active:scale-95 transition shadow-2xl"
+                          ) : (
+                            <>
+                              <Webcam
+                                audio={false}
+                                ref={webcamRef}
+                                screenshotFormat="image/jpeg"
+                                onUserMediaError={handleUserMediaError}
+                                videoConstraints={{ facingMode: FACING_MODES.USER }}
+                                className="w-full h-full object-cover aspect-[3/4]"
+                                mirrored={true}
+                                forceScreenshotSourceSize={false}
+                                imageSmoothing={true}
+                                disablePictureInPicture={true}
+                                screenshotQuality={0.92}
+                                onUserMedia={() => {}}
                               />
-                              <p className="text-white text-[14px] font-black uppercase tracking-widest drop-shadow-lg">Toque para Tirar a Foto</p>
-                            </div>
-                          </>
-                        )}
+                              <div className="absolute top-4 right-4 z-10">
+                                <button 
+                                  onClick={() => setIsCapturing(false)}
+                                  className="bg-black/50 text-white px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider backdrop-blur-md"
+                                >
+                                  Cancelar
+                                </button>
+                              </div>
+                              <div className="absolute bottom-6 inset-x-0 flex justify-center flex-col items-center gap-3">
+                                <button 
+                                  onClick={captureFace}
+                                  className="w-20 h-20 rounded-full border-4 border-white bg-white/20 backdrop-blur-sm flex items-center justify-center hover:bg-white/40 active:scale-95 transition shadow-2xl"
+                                />
+                                <p className="text-white text-[14px] font-black uppercase tracking-widest drop-shadow-lg">Toque para Tirar a Foto</p>
+                              </div>
+                            </>
+                          )}
+                        </div>
                       </div>
                     ) : (
                       <div className="w-full space-y-4">
@@ -575,6 +549,14 @@ export default function App() {
                 </div>
 
                 <div className="w-full max-w-sm space-y-4">
+                  <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden shadow-inner">
+                    <motion.div 
+                      initial={{ width: 0 }}
+                      animate={{ width: "100%" }}
+                      transition={{ duration: 5, ease: "linear" }}
+                      className="h-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]"
+                    />
+                  </div>
                   <LoadingStep text="Investigando a pele..." delay={0} />
                   <LoadingStep text="Medindo deficiência de colágeno..." delay={1.5} />
                   <LoadingStep text="Projetando danos estruturais..." delay={3} />
@@ -669,6 +651,14 @@ export default function App() {
                 </div>
 
                 <div className="w-full max-w-sm space-y-4">
+                  <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden shadow-inner">
+                    <motion.div 
+                      initial={{ width: 0 }}
+                      animate={{ width: "100%" }}
+                      transition={{ duration: 6, ease: "linear" }}
+                      className="h-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]"
+                    />
+                  </div>
                   <LoadingStep text="Limpando bactérias ruins..." delay={0} />
                   <LoadingStep text="Estimulando colágeno fresco..." delay={2} />
                   <LoadingStep text="Renovando pele em 100%..." delay={4} />
