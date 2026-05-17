@@ -236,7 +236,7 @@ export default function App() {
         }
       } catch (err: any) {
         console.error("Capture failure:", err);
-        alert("Erro ao capturar foto: " + (err.message || "Tente novamente."));
+        setApiError("Erro ao capturar foto: " + (err.message || "Tente novamente."));
         setIsCapturing(false);
       }
     }
@@ -254,7 +254,7 @@ export default function App() {
       setIsCapturing(false);
     } catch (err: any) {
       console.error('File upload error:', err);
-      alert('Erro ao carregar a foto. Tente outra foto ou use a câmera.');
+      setApiError('Erro ao carregar a foto. Tente outra foto ou use a câmera.');
     }
   };
 
@@ -693,9 +693,15 @@ export default function App() {
 
                 <button
                   onClick={applyTreatment}
-                  className="w-full py-5 bg-emerald-600 active:bg-emerald-700 text-white font-black uppercase tracking-widest text-[15px] rounded-2xl shadow-xl shadow-emerald-600/30 transform transition active:scale-95"
+                  disabled={isProcessing}
+                  className={cn(
+                    "w-full py-5 font-black uppercase tracking-widest text-[15px] rounded-2xl shadow-xl transform transition active:scale-95",
+                    isProcessing
+                      ? "bg-slate-300 text-slate-500 cursor-not-allowed shadow-none"
+                      : "bg-emerald-600 active:bg-emerald-700 text-white shadow-emerald-600/30"
+                  )}
                 >
-                  CONTINUAR!
+                  {isProcessing ? 'PROCESSANDO...' : 'CONTINUAR!'}
                 </button>
               </motion.div>
             )}
