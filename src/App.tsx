@@ -842,7 +842,7 @@ export default function App() {
                 </div>
 
                 {/* VSL Final Video */}
-                <div className="relative w-full rounded-3xl overflow-hidden shadow-2xl ring-4 ring-slate-100 bg-black min-h-[200px] flex items-center justify-center">
+                <div className="relative w-full rounded-3xl overflow-hidden shadow-xl shadow-slate-200 border border-slate-200 bg-black min-h-[200px] flex items-center justify-center">
                     <FinalVSLPlayer />
                 </div>
               </motion.div>
