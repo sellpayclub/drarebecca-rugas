@@ -369,6 +369,29 @@ export default function App() {
                   <VSLPlayer />
                 </div>
 
+                {/* REFERÊNCIAS CIENTÍFICAS */}
+                <div className="mt-8 space-y-3">
+                  <h3 className="text-[13px] font-black text-slate-500 uppercase tracking-widest text-center">Referências Científicas</h3>
+                  <div className="space-y-3">
+                    <a href="https://pubmed.ncbi.nlm.nih.gov/31329307/" target="_blank" rel="noopener noreferrer" className="block bg-white p-4 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+                      <p className="text-[11px] text-slate-700 leading-relaxed font-medium">LUU, Lydia A. et al. Apple cider vinegar soaks (0.5%) as a treatment for atopic dermatitis do not improve skin barrier integrity. <em>Pediatric Dermatology</em>, v. 36, n. 5, p. 634-639, 2019.</p>
+                      <span className="text-[10px] text-emerald-600 font-bold mt-1 block">📎 pubmed.ncbi.nlm.nih.gov</span>
+                    </a>
+                    <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC2883372/" target="_blank" rel="noopener noreferrer" className="block bg-white p-4 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+                      <p className="text-[11px] text-slate-700 leading-relaxed font-medium">CHO, Soyun et al. Dietary Aloe Vera Supplementation Improves Facial Wrinkles and Elasticity and It Increases the Type I Procollagen Gene Expression in Human Skin in vivo. <em>Annals of Dermatology</em>, v. 21, n. 1, p. 6-11, 2009.</p>
+                      <span className="text-[10px] text-emerald-600 font-bold mt-1 block">📎 pmc.ncbi.nlm.nih.gov</span>
+                    </a>
+                    <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC4321565/" target="_blank" rel="noopener noreferrer" className="block bg-white p-4 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+                      <p className="text-[11px] text-slate-700 leading-relaxed font-medium">QIRAOUANI BOUCETTA, Kenza et al. The effect of dietary and/or cosmetic argan oil on postmenopausal skin elasticity. <em>Clinical Interventions in Aging</em>, v. 10, p. 339-349, 2015.</p>
+                      <span className="text-[10px] text-emerald-600 font-bold mt-1 block">📎 pmc.ncbi.nlm.nih.gov</span>
+                    </a>
+                    <a href="https://pubmed.ncbi.nlm.nih.gov/20523108/" target="_blank" rel="noopener noreferrer" className="block bg-white p-4 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+                      <p className="text-[11px] text-slate-700 leading-relaxed font-medium">NEVIN, K. G.; RAJAMOHAN, T. Effect of topical application of virgin coconut oil on skin components and antioxidant status in dermal wound healing in young rats. <em>Skin Pharmacology and Physiology</em>, v. 23, n. 6, p. 290-297, 2010.</p>
+                      <span className="text-[10px] text-emerald-600 font-bold mt-1 block">📎 pubmed.ncbi.nlm.nih.gov</span>
+                    </a>
+                  </div>
+                </div>
+
                 {showFaceButton && (
                   <button 
                     onClick={() => setPhase('capture')}
