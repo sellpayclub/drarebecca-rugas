@@ -55,6 +55,8 @@ export default function App() {
   const [treatedImage, setTreatedImage] = useState<string | null>(null);
   
   const [isCapturing, setIsCapturing] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false); // Prevents double-click
+  const [apiError, setApiError] = useState<string | null>(null); // Inline error messages
   const [cameraError, setCameraError] = useState<string | null>(null);
   const webcamRef = useRef<Webcam>(null);
   const mainContentRef = useRef<HTMLDivElement>(null);
@@ -258,10 +260,13 @@ export default function App() {
 
   const submitForAnalysis = async () => {
     if (!firstName || !ageRange || !originalImage) {
-      alert("Preencha todos os campos e tire a foto para continuar.");
+      setApiError("Preencha todos os campos e tire a foto para continuar.");
       return;
     }
+    if (isProcessing) return; // Block double-clicks
     
+    setIsProcessing(true);
+    setApiError(null);
     setPhase('analyzing');
     const startTime = Date.now();
     
@@ -275,15 +280,21 @@ export default function App() {
       setTimeout(() => {
         setAgedImage(result.imageUrl);
         setPhase('aged_result');
+        setIsProcessing(false);
       }, remaining);
     } catch (err: any) {
       console.error('[Aging] Failed:', err.message || err);
-      alert('Erro na análise: ' + (err.message || 'Tente novamente.'));
+      setApiError(err.message || 'Erro ao processar. Tente novamente.');
       setPhase('capture');
+      setIsProcessing(false);
     }
   };
 
   const applyTreatment = async () => {
+    if (isProcessing) return; // Block double-clicks
+    
+    setIsProcessing(true);
+    setApiError(null);
     setPhase('processing_treatment');
     const startTime = Date.now();
     
@@ -297,11 +308,13 @@ export default function App() {
       setTimeout(() => {
         setTreatedImage(result.imageUrl);
         setPhase('treated_result');
+        setIsProcessing(false);
       }, remaining);
     } catch (err: any) {
       console.error('[Treatment] Failed:', err.message || err);
-      alert('Erro no tratamento: ' + (err.message || 'Tente novamente.'));
+      setApiError(err.message || 'Erro ao processar. Tente novamente.');
       setPhase('aged_result');
+      setIsProcessing(false);
     }
   };
 
@@ -543,19 +556,34 @@ export default function App() {
                   )}
                 </div>
 
-                <div className="mt-8 shrink-0 pb-8">
+                <div className="mt-8 shrink-0 pb-8 space-y-3">
+                  {/* Inline error message - replaces alert() for better mobile UX */}
+                  {apiError && phase === 'capture' && (
+                    <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 flex items-start gap-3">
+                      <AlertCircle className="w-5 h-5 text-red-500 mt-0.5 shrink-0" />
+                      <div>
+                        <p className="text-sm text-red-700 font-medium">{apiError}</p>
+                        <button 
+                          onClick={() => setApiError(null)}
+                          className="text-xs text-red-500 underline mt-1"
+                        >
+                          Fechar
+                        </button>
+                      </div>
+                    </div>
+                  )}
                   <button
                     onClick={submitForAnalysis}
-                    disabled={!originalImage || !firstName || !ageRange}
+                    disabled={!originalImage || !firstName || !ageRange || isProcessing}
                     className={cn(
                       "w-full py-5 font-black uppercase tracking-wider text-[16px] rounded-2xl transform transition flex items-center justify-center gap-2",
-                      (!originalImage || !firstName || !ageRange) 
+                      (!originalImage || !firstName || !ageRange || isProcessing) 
                         ? "bg-slate-200 text-slate-400 cursor-not-allowed" 
                         : "bg-emerald-600 active:bg-emerald-700 text-white shadow-lg shadow-emerald-600/20 active:-translate-y-1"
                     )}
                   >
-                    INICIAR ANÁLISE FACIAL!
-                    <ChevronRight className="w-6 h-6" />
+                    {isProcessing ? 'PROCESSANDO...' : 'INICIAR ANÁLISE FACIAL!'}
+                    {!isProcessing && <ChevronRight className="w-6 h-6" />}
                   </button>
                 </div>
               </motion.div>
