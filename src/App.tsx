@@ -3,6 +3,7 @@ import Webcam from 'react-webcam';
 import { motion, AnimatePresence } from 'motion/react';
 import { Camera, ChevronRight, AlertCircle, Sparkles, Play, RefreshCw, Upload } from 'lucide-react';
 import { cn } from './lib/utils';
+import { transformImage } from './lib/fal';
 
 type FunnelPhase = 
   | 'video_intro' 
@@ -264,71 +265,21 @@ export default function App() {
     setPhase('analyzing');
     const startTime = Date.now();
     
-    const maxAttempts = 3;
-
-    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-      try {
-        const controller = new AbortController();
-        // 180s timeout - server does internal retries which can take time
-        const timeoutId = setTimeout(() => controller.abort(), 180000);
-
-        const jsonBody = JSON.stringify({
-          base64Image: originalImage,
-          type: 'aging'
-        });
-        console.log(`[Aging] Attempt ${attempt}/${maxAttempts}, payload: ${Math.round(jsonBody.length / 1024)}KB`);
-
-        const res = await fetch('/api/transformar', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          signal: controller.signal,
-          body: jsonBody
-        });
-        
-        clearTimeout(timeoutId);
-
-        if (!res.ok) {
-          const errorText = await res.text();
-          let msg = `Erro no servidor (${res.status})`;
-          try {
-            const json = JSON.parse(errorText);
-            if (json.error) msg = json.error;
-          } catch(e) {}
-          throw new Error(msg);
-        }
-
-        const data = await res.json();
-        
-        if (data.imagemTransformada) {
-          const elapsed = Date.now() - startTime;
-          const minWait = 7500; 
-          const remaining = Math.max(0, minWait - elapsed);
-          
-          setTimeout(() => {
-            setAgedImage(data.imagemTransformada);
-            setPhase('aged_result');
-          }, remaining);
-          return; // Success - exit
-        } else {
-          throw new Error(data.error || "Falha ao analisar imagem");
-        }
-      } catch (err: any) {
-        console.warn(`[Aging] Attempt ${attempt} failed:`, err.message || err);
-        
-        if (attempt < maxAttempts) {
-          console.log(`[Aging] Retrying in 2s...`);
-          await new Promise(r => setTimeout(r, 2000));
-          continue;
-        }
-        
-        // All attempts failed
-        const errorMessage = err.name === 'AbortError' 
-          ? "A conexão demorou muito. Verifique sua internet e tente novamente."
-          : (err.message || "Erro desconhecido");
-        console.error("[Aging] All attempts failed:", errorMessage);
-        alert("Erro na análise: " + errorMessage);
-        setPhase('capture');
-      }
+    try {
+      const result = await transformImage(originalImage, 'aging');
+      
+      const elapsed = Date.now() - startTime;
+      const minWait = 7500;
+      const remaining = Math.max(0, minWait - elapsed);
+      
+      setTimeout(() => {
+        setAgedImage(result.imageUrl);
+        setPhase('aged_result');
+      }, remaining);
+    } catch (err: any) {
+      console.error('[Aging] Failed:', err.message || err);
+      alert('Erro na análise: ' + (err.message || 'Tente novamente.'));
+      setPhase('capture');
     }
   };
 
@@ -336,70 +287,21 @@ export default function App() {
     setPhase('processing_treatment');
     const startTime = Date.now();
     
-    const maxAttempts = 3;
+    try {
+      const result = await transformImage(originalImage!, 'treatment');
+      
+      const elapsed = Date.now() - startTime;
+      const minWait = 8500;
+      const remaining = Math.max(0, minWait - elapsed);
 
-    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 180000);
-
-        const jsonBody = JSON.stringify({
-          base64Image: originalImage,
-          type: 'treatment'
-        });
-        console.log(`[Treatment] Attempt ${attempt}/${maxAttempts}, payload: ${Math.round(jsonBody.length / 1024)}KB`);
-
-        const res = await fetch('/api/transformar', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          signal: controller.signal,
-          body: jsonBody
-        });
-        
-        clearTimeout(timeoutId);
-
-        if (!res.ok) {
-          const errorText = await res.text();
-          let msg = `Erro no servidor (${res.status})`;
-          try {
-            const json = JSON.parse(errorText);
-            if (json.error) msg = json.error;
-          } catch(e) {}
-          throw new Error(msg);
-        }
-
-        const data = await res.json();
-        
-        if (data.imagemTransformada) {
-          const elapsed = Date.now() - startTime;
-          const minWait = 8500; 
-          const remaining = Math.max(0, minWait - elapsed);
-
-          setTimeout(() => {
-            setTreatedImage(data.imagemTransformada);
-            setPhase('treated_result');
-          }, remaining);
-          return; // Success - exit
-        } else {
-          throw new Error(data.error || "Falha ao processar imagem");
-        }
-      } catch (err: any) {
-        console.warn(`[Treatment] Attempt ${attempt} failed:`, err.message || err);
-        
-        if (attempt < maxAttempts) {
-          console.log(`[Treatment] Retrying in 2s...`);
-          await new Promise(r => setTimeout(r, 2000));
-          continue;
-        }
-        
-        // All attempts failed
-        const errorMessage = err.name === 'AbortError' 
-          ? "A conexão demorou muito. Verifique sua internet e tente novamente."
-          : (err.message || "Erro desconhecido");
-        console.error("[Treatment] All attempts failed:", errorMessage);
-        alert("Erro no tratamento: " + errorMessage);
-        setPhase('aged_result');
-      }
+      setTimeout(() => {
+        setTreatedImage(result.imageUrl);
+        setPhase('treated_result');
+      }, remaining);
+    } catch (err: any) {
+      console.error('[Treatment] Failed:', err.message || err);
+      alert('Erro no tratamento: ' + (err.message || 'Tente novamente.'));
+      setPhase('aged_result');
     }
   };
 
