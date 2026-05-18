@@ -85,7 +85,7 @@ export interface TransformResult {
  */
 export async function transformImage(
   base64Image: string,
-  type: 'aging' | 'treatment'
+  type: 'aging' | 'treatment' | 'yoga_aging' | 'yoga_treatment'
 ): Promise<TransformResult> {
   const requestId = Math.random().toString(36).substring(7);
 
@@ -138,6 +138,10 @@ export async function transformImage(
       modificacoes = "identical person, same features. ADD 70% MORE wrinkles: deep crow's feet (pé de galinha), prominent expression lines, nasolabial folds (bigode chinês), and neck wrinkles. Project aging ONLY on skin texture as if neglected. NO new heavy spots, NO change in facial structure. Natural aging projection.";
     } else if (type === "treatment") {
       modificacoes = "identical person, same features. REMOVE 80% of all skin imperfections, wrinkles, and aging signs. Smooth and hydrated skin texture, rejuvenated appearance, well-cared for healthy skin. Keep facial features exactly the same, only youthful skin surface. Radiant and professional finish.";
+    } else if (type === "yoga_aging") {
+      modificacoes = "identical person, same features. ENHANCE signs of MUSCLE WEAKNESS and GRAVITATIONAL SAGGING: visibly drooping cheeks, heavy sagging eyelids, loose sagging jawline losing definition, deepened nasolabial folds (bigode chinês), sagging neck with loose platysma muscle, forehead lines from weak frontalis muscle. Emphasize gravitational aging effects from weakened facial muscles. The face should look like it is 'falling' due to muscle atrophy. NO skin disease, NO spots. Natural muscle-aging sagging appearance.";
+    } else if (type === "yoga_treatment") {
+      modificacoes = "identical person, same features. Show a LIFTED, TONED, FIRM facial appearance as if facial muscles have been strengthened and reactivated: elevated high cheekbones, sharply defined jawline and chin, wide open bright youthful eyes with lifted eyelids, smooth forehead, firm toned neck with clean jawline angle, significantly reduced nasolabial folds. Skin looks healthy firm and glowing from strong muscle support underneath. Natural youthful but completely realistic appearance. Radiant healthy finish.";
     }
 
     const prompt = `Raw high-quality portrait photograph. 
