@@ -180,22 +180,22 @@ export default function YogaFacialFunnel() {
               {/* Headline */}
               <div className="text-center mb-8 space-y-4">
                 <h1 className="text-[26px] sm:text-[30px] font-extrabold leading-[1.3]" style={{ color: C.textDark }}>
-                  Sua pele está envelhecendo por causa da idade — <span style={{ color: C.roseDark }}>ou porque seus músculos faciais estão caindo?</span>
+                  Gere sua <span style={{ color: C.roseDark }}>rotina personalizada de exercícios faciais</span> baseada no SEU rosto
                 </h1>
                 <p className="text-[17px] leading-[1.6]" style={{ color: C.textMedium }}>
-                  Descobrir essa resposta muda tudo! E em <strong style={{ color: C.textDark }}>60 segundos</strong> nossa IA descobre qual é o seu caso.
+                  Nossa IA analisa as imperfeições do seu rosto e cria uma <strong style={{ color: C.textDark }}>rotina exclusiva de Yoga Facial</strong> para você — em menos de 60 segundos.
                 </p>
               </div>
 
               {/* CTA 1 */}
               <div className="space-y-4 mb-8">
                 <p className="text-center text-[16px] font-bold" style={{ color: C.textMedium }}>
-                  👇 Clique abaixo e inicie sua análise gratuita agora
+                  👇 Tire uma foto e receba sua rotina personalizada
                 </p>
                 <button onClick={() => setPhase('capture')}
                   className="w-full py-5 rounded-2xl text-white font-extrabold text-[17px] uppercase tracking-wider shadow-lg transform transition-all active:scale-[0.97] hover:shadow-xl"
                   style={{ background: `linear-gradient(135deg, ${C.rose}, ${C.roseDark})`, boxShadow: `0 8px 30px ${C.rose}44` }}>
-                  INICIAR MINHA ANÁLISE FACIAL GRATUITA
+                  GERAR MINHA ROTINA PERSONALIZADA
                 </button>
               </div>
 
@@ -205,8 +205,8 @@ export default function YogaFacialFunnel() {
                   É gratuito. Leva menos de 1 minuto.<br />Basta tirar uma foto do rosto com boa iluminação.
                 </p>
                 <div className="flex flex-col gap-3 items-center">
-                  <p className="text-[15px] font-bold" style={{ color: C.textDark }}>+12.000 análises realizadas em 2026.</p>
-                  <p className="text-[15px] font-bold" style={{ color: C.roseDark }}>96% das mulheres identificaram a causa real do envelhecimento pela primeira vez.</p>
+                  <p className="text-[15px] font-bold" style={{ color: C.textDark }}>+12.000 rotinas personalizadas geradas em 2026.</p>
+                  <p className="text-[15px] font-bold" style={{ color: C.roseDark }}>96% das mulheres viram resultados seguindo sua rotina personalizada.</p>
                 </div>
               </div>
 
@@ -221,12 +221,12 @@ export default function YogaFacialFunnel() {
               {/* CTA 2 */}
               <div className="space-y-3">
                 <p className="text-center text-[16px] font-bold" style={{ color: C.textMedium }}>
-                  👇 Clique abaixo e inicie sua análise gratuita agora
+                  👇 Tire uma foto e receba sua rotina personalizada
                 </p>
                 <button onClick={() => setPhase('capture')}
                   className="w-full py-5 rounded-2xl text-white font-extrabold text-[17px] uppercase tracking-wider shadow-lg transform transition-all active:scale-[0.97] animate-pulse"
                   style={{ background: `linear-gradient(135deg, ${C.rose}, ${C.roseDark})`, boxShadow: `0 8px 30px ${C.rose}44` }}>
-                  INICIAR MINHA ANÁLISE FACIAL GRATUITA
+                  GERAR MINHA ROTINA PERSONALIZADA
                 </button>
               </div>
             </motion.div>
@@ -236,8 +236,8 @@ export default function YogaFacialFunnel() {
           {phase === 'capture' && (
             <motion.div key="capture" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="flex-1 flex flex-col px-6 py-8 space-y-5">
               <div className="text-center space-y-3">
-                <h2 className="text-[26px] font-extrabold" style={{ color: C.textDark }}>Análise Facial com IA</h2>
-                <p className="text-[16px]" style={{ color: C.textMedium }}>Tire uma foto do seu rosto com boa iluminação para iniciar a análise.</p>
+                <h2 className="text-[26px] font-extrabold" style={{ color: C.textDark }}>Gerar Minha Rotina</h2>
+                <p className="text-[16px]" style={{ color: C.textMedium }}>Tire uma foto do seu rosto para que a IA identifique suas imperfeições e gere sua rotina personalizada.</p>
               </div>
 
               <div className="flex-1 flex flex-col items-center gap-4">
@@ -325,7 +325,7 @@ export default function YogaFacialFunnel() {
                   (!originalImage || isProcessing) ? "cursor-not-allowed opacity-50" : "active:scale-[0.97] shadow-lg")}
                 style={{ background: (!originalImage || isProcessing) ? '#E5D8DA' : `linear-gradient(135deg, ${C.rose}, ${C.roseDark})`,
                   color: (!originalImage || isProcessing) ? C.textLight : '#fff', boxShadow: originalImage && !isProcessing ? `0 8px 30px ${C.rose}44` : 'none' }}>
-                {isProcessing ? 'PROCESSANDO...' : 'ANALISAR MEU ROSTO'}
+                {isProcessing ? 'GERANDO SUA ROTINA...' : 'GERAR MINHA ROTINA'}
               </button>
             </motion.div>
           )}
@@ -343,13 +343,13 @@ export default function YogaFacialFunnel() {
                 <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full shadow-md border flex items-center gap-2"
                   style={{ background: C.bgCard, borderColor: C.border }}>
                   <RefreshCw className="w-3 h-3 animate-spin" style={{ color: C.rose }} />
-                  <span className="text-[10px] font-bold uppercase tracking-tight" style={{ color: C.textMedium }}>Analisando</span>
+                  <span className="text-[10px] font-bold uppercase tracking-tight" style={{ color: C.textMedium }}>Gerando</span>
                 </div>
               </div>
 
               <div className="text-center space-y-3">
-                <h3 className="text-[24px] font-extrabold" style={{ color: C.textDark }}>Analisando seu rosto...</h3>
-                <p className="text-[15px]" style={{ color: C.textLight }}>Nossa IA está mapeando sua estrutura muscular facial</p>
+                <h3 className="text-[24px] font-extrabold" style={{ color: C.textDark }}>Gerando sua rotina personalizada...</h3>
+                <p className="text-[15px]" style={{ color: C.textLight }}>Nossa IA está analisando seu rosto e criando seus exercícios</p>
               </div>
 
               <div className="w-full max-w-sm space-y-4">
@@ -359,10 +359,10 @@ export default function YogaFacialFunnel() {
                     className="h-full rounded-full" style={{ background: `linear-gradient(90deg, ${C.roseMedium}, ${C.rose})` }} />
                 </div>
                 <div className="space-y-3">
-                  <LoadingStep text="Analisando estrutura muscular facial..." delay={0} />
-                  <LoadingStep text="Identificando nível de flacidez e sustentação..." delay={3} />
-                  <LoadingStep text="Comparando com padrão saudável para sua faixa etária..." delay={6} />
-                  <LoadingStep text="Gerando projeção de evolução..." delay={9} />
+                  <LoadingStep text="Mapeando estrutura muscular do seu rosto..." delay={0} />
+                  <LoadingStep text="Identificando áreas de flacidez e imperfeições..." delay={3} />
+                  <LoadingStep text="Selecionando exercícios ideais para o seu caso..." delay={6} />
+                  <LoadingStep text="Montando sua rotina completa personalizada..." delay={9} />
                 </div>
               </div>
             </motion.div>
