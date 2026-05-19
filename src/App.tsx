@@ -281,6 +281,11 @@ export default function App() {
         setAgedImage(result.imageUrl);
         setPhase('aged_result');
         setIsProcessing(false);
+        // Facebook Pixel: Custom conversion - foto aging gerada
+        if (typeof window !== 'undefined' && (window as any).fbq) {
+          (window as any).fbq('trackCustom', 'FotoGerada', { funnel: 'principal', tipo: 'aging' });
+          console.log('[FB Pixel] FotoGerada event fired (principal/aging)');
+        }
       }, remaining);
     } catch (err: any) {
       console.error('[Aging] Failed:', err.message || err);
@@ -309,6 +314,11 @@ export default function App() {
         setTreatedImage(result.imageUrl);
         setPhase('treated_result');
         setIsProcessing(false);
+        // Facebook Pixel: Custom conversion - foto treatment gerada
+        if (typeof window !== 'undefined' && (window as any).fbq) {
+          (window as any).fbq('trackCustom', 'FotoGerada', { funnel: 'principal', tipo: 'treatment' });
+          console.log('[FB Pixel] FotoGerada event fired (principal/treatment)');
+        }
       }, remaining);
     } catch (err: any) {
       console.error('[Treatment] Failed:', err.message || err);

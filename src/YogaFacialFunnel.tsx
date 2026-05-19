@@ -149,6 +149,11 @@ export default function YogaFacialFunnel() {
         setTreatedImage(treatedResult.imageUrl);
         setPhase('sales');
         setIsProcessing(false);
+        // Facebook Pixel: Custom conversion - foto gerada com sucesso
+        if (typeof window !== 'undefined' && (window as any).fbq) {
+          (window as any).fbq('trackCustom', 'FotoGerada', { funnel: 'yoga_facial' });
+          console.log('[FB Pixel] FotoGerada event fired (yoga_facial)');
+        }
       }, remaining);
     } catch (err: any) {
       setApiError(err.message || 'Erro ao processar. Tente novamente.');
