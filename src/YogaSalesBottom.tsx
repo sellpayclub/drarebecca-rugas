@@ -167,17 +167,14 @@ export default function YogaSalesBottom({ checkoutUrl, colors: C }: { checkoutUr
           <span className="inline-block text-[14px] font-bold uppercase tracking-wider px-5 py-2 rounded-full" style={{ background: C.roseLight, color: C.roseDark }}>Melhor Custo-Benefício</span>
         </div>
 
-        <div className="rounded-2xl p-5 mb-5 text-center" style={{ background: '#FEF2F2', border: '2px solid #FECACA' }}>
-          <p className="text-[15px] line-through mb-1" style={{ color: '#9CA3AF' }}>Qualquer creme que não funciona</p>
-          <p className="text-[20px] font-bold" style={{ color: '#B91C1C' }}>R$ 150+ todos os meses</p>
-        </div>
+
 
         <div className="rounded-3xl p-7 text-center shadow-xl mb-8" style={{ background: `linear-gradient(135deg, ${C.roseLight}, ${C.bgCard})`, border: `3px solid ${C.roseMedium}` }}>
           <p className="text-[16px] font-bold uppercase tracking-wider mb-3" style={{ color: C.roseDark }}>Yoga Facial — Plano Completo</p>
           <div className="flex items-baseline justify-center gap-1 mb-4">
             <span className="text-[20px] font-bold" style={{ color: C.textMedium }}>R$</span>
-            <span className="text-[56px] font-black leading-none" style={{ color: C.roseDark }}>37</span>
-            <span className="text-[18px] font-bold" style={{ color: C.textMedium }}>,00</span>
+            <span className="text-[56px] font-black leading-none" style={{ color: C.roseDark }}>29</span>
+            <span className="text-[18px] font-bold" style={{ color: C.textMedium }}>,90</span>
           </div>
           <p className="text-[15px] mb-6" style={{ color: C.textMedium }}>Por menos do que um único creme anti-idade.</p>
           <a href={checkoutUrl} target="_blank" rel="noopener noreferrer"

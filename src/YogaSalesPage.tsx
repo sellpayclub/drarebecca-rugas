@@ -115,7 +115,15 @@ export default function YogaSalesPage({ agedImage, treatedImage }: Props) {
 
           {/* Logo + description */}
           <div className="text-center space-y-5 mb-8">
-            <img src="https://xyzgvsuttwrvbyyxdppq.supabase.co/storage/v1/object/public/imagens/logo%20yoga%20facial.png" alt="Yoga Facial" className="h-14 mx-auto object-contain" />
+            <div className="rounded-2xl overflow-hidden shadow-lg mb-2" style={{ border: `2px solid ${C.border}` }}>
+              <div dangerouslySetInnerHTML={{ __html: `
+                <div id="ifr_6a0c55feef36953d22529ee1_wrapper" style="margin: 0 auto; width: 100%; max-width: 400px;">
+                  <div style="position: relative; padding: 177.77777777777777% 0 0 0;" id="ifr_6a0c55feef36953d22529ee1_aspect">
+                    <iframe frameborder="0" allowfullscreen src="about:blank" id="ifr_6a0c55feef36953d22529ee1" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;" referrerpolicy="origin" onload="this.onload=null, this.src='https://scripts.converteai.net/ceaefeeb-feef-4b52-8911-9ec9de0d5b6b/players/6a0c55feef36953d22529ee1/v4/embed.html' +(location.search||'?') +'&vl=' +encodeURIComponent(location.href)"></iframe>
+                  </div>
+                </div>
+              `}} />
+            </div>
             <p className="text-[17px] leading-[1.7]" style={{ color: C.textMedium }}>
               Participe do melhor método de Yoga Facial do Brasil e descubra o método simples de exercícios faciais que <strong style={{ color: C.textDark }}>fortalece, levanta e redefine</strong> seu rosto naturalmente.
             </p>
