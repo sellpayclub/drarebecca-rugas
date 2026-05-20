@@ -23,9 +23,9 @@ const FACING_MODES = {
 const VSLPlayer = React.memo(() => (
   <div className="w-full">
     <div dangerouslySetInnerHTML={{ __html: `
-      <div id="ifr_6a089158b6147a0d495dfff8_wrapper" style="margin: 0 auto; width: 100%; ">
-        <div style="position: relative; padding: 56.25% 0 0 0;" id="ifr_6a089158b6147a0d495dfff8_aspect">
-          <iframe frameborder="0" allowfullscreen src="about:blank" id="ifr_6a089158b6147a0d495dfff8" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;" referrerpolicy="origin" onload="this.onload=null, this.src=\'https://scripts.converteai.net/ceaefeeb-feef-4b52-8911-9ec9de0d5b6b/players/6a089158b6147a0d495dfff8/v4/embed.html\' +(location.search||\'?\') +\'&vl=\' +encodeURIComponent(location.href)"></iframe>
+      <div id="ifr_6a0d9a7749252ad50780d906_wrapper" style="margin: 0 auto; width: 100%; ">
+        <div style="position: relative; padding: 56.25% 0 0 0;" id="ifr_6a0d9a7749252ad50780d906_aspect">
+          <iframe frameborder="0" allowfullscreen src="about:blank" id="ifr_6a0d9a7749252ad50780d906" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;" referrerpolicy="origin" onload="this.onload=null, this.src='https://scripts.converteai.net/ceaefeeb-feef-4b52-8911-9ec9de0d5b6b/players/6a0d9a7749252ad50780d906/v4/embed.html' +(location.search||'?') +'&vl=' +encodeURIComponent(location.href)"></iframe>
         </div>
       </div>
     `}} />
@@ -381,6 +381,7 @@ export default function App() {
 
 
 
+                {/* BOTÃO ANÁLISE TEMPORARIAMENTE DESATIVADO
                 {showFaceButton && (
                   <button 
                     onClick={() => setPhase('capture')}
@@ -389,6 +390,7 @@ export default function App() {
                     INICIAR ANÁLISE FACIAL AGORA!
                   </button>
                 )}
+                */}
               </motion.div>
             )}
 
