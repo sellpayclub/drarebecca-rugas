@@ -1,7 +1,0 @@
-{
-  "rewrites": [
-    { "source": "/video02", "destination": "/index.html" },
-    { "source": "/analise", "destination": "/index.html" },
-    { "source": "/(.*)", "destination": "/index.html" }
-  ]
-}

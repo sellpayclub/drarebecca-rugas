@@ -3,7 +3,6 @@ import Webcam from 'react-webcam';
 import { motion, AnimatePresence } from 'motion/react';
 import { Camera, ChevronRight, AlertCircle, Sparkles, Play, RefreshCw, Upload } from 'lucide-react';
 import { cn } from './lib/utils';
-import { transformImage } from './lib/fal';
 
 type FunnelPhase = 
   | 'video_intro' 
@@ -19,13 +18,13 @@ const FACING_MODES = {
   ENVIRONMENT: "environment"
 };
 
-// VSL Player Component memoized to prevent restarts on parent state changes (button appearing)
+// VSL Player Component memoized to prevent restarts on parent state changes
 const VSLPlayer = React.memo(() => (
   <div className="w-full">
     <div dangerouslySetInnerHTML={{ __html: `
-      <div id="ifr_6a089158b6147a0d495dfff8_wrapper" style="margin: 0 auto; width: 100%; ">
-        <div style="position: relative; padding: 56.25% 0 0 0;" id="ifr_6a089158b6147a0d495dfff8_aspect">
-          <iframe frameborder="0" allowfullscreen src="about:blank" id="ifr_6a089158b6147a0d495dfff8" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;" referrerpolicy="origin" onload="this.onload=null, this.src='https://scripts.converteai.net/ceaefeeb-feef-4b52-8911-9ec9de0d5b6b/players/6a089158b6147a0d495dfff8/v4/embed.html' +(location.search||'?') +'&vl=' +encodeURIComponent(location.href)"></iframe>
+      <div id="ifr_6a0f41ec950ee8ec39477b77_wrapper" style="margin: 0 auto; width: 100%; ">
+        <div style="position: relative; padding: 56.25% 0 0 0;" id="ifr_6a0f41ec950ee8ec39477b77_aspect">
+          <iframe frameborder="0" allowfullscreen src="about:blank" id="ifr_6a0f41ec950ee8ec39477b77" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;" referrerpolicy="origin" onload="this.onload=null, this.src='https://scripts.converteai.net/ceaefeeb-feef-4b52-8911-9ec9de0d5b6b/players/6a0f41ec950ee8ec39477b77/v4/embed.html' +(location.search||'?') +'&vl=' +encodeURIComponent(location.href)"></iframe>
         </div>
       </div>
     `}} />
@@ -36,9 +35,9 @@ const VSLPlayer = React.memo(() => (
 const FinalVSLPlayer = React.memo(() => (
   <div className="w-full">
     <div dangerouslySetInnerHTML={{ __html: `
-      <div id="ifr_6a0df0a7af60d3892ccac112_wrapper" style="margin: 0 auto; width: 100%; ">
-        <div style="position: relative; padding: 56.25% 0 0 0;" id="ifr_6a0df0a7af60d3892ccac112_aspect">
-          <iframe frameborder="0" allowfullscreen src="about:blank" id="ifr_6a0df0a7af60d3892ccac112" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;" referrerpolicy="origin" onload="this.onload=null, this.src='https://scripts.converteai.net/ceaefeeb-feef-4b52-8911-9ec9de0d5b6b/players/6a0df0a7af60d3892ccac112/v4/embed.html' +(location.search||'?') +'&vl=' +encodeURIComponent(location.href)"></iframe>
+      <div id="ifr_6a08dabf9a5df223bbe2f2a9_wrapper" style="margin: 0 auto; width: 100%; ">
+        <div style="position: relative; padding: 56.25% 0 0 0;" id="ifr_6a08dabf9a5df223bbe2f2a9_aspect">
+          <iframe frameborder="0" allowfullscreen src="about:blank" id="ifr_6a08dabf9a5df223bbe2f2a9" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;" referrerpolicy="origin" onload="this.onload=null, this.src=\'https://scripts.converteai.net/ceaefeeb-feef-4b52-8911-9ec9de0d5b6b/players/6a08dabf9a5df223bbe2f2a9/v4/embed.html\' +(location.search||\'?\') +\'&vl=\' +encodeURIComponent(location.href)"></iframe>
         </div>
       </div>
     `}} />
@@ -55,15 +54,12 @@ export default function App() {
   const [treatedImage, setTreatedImage] = useState<string | null>(null);
   
   const [isCapturing, setIsCapturing] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false); // Prevents double-click
-  const [captureStep, setCaptureStep] = useState<1|2|3>(1); // 1=name, 2=age, 3=photo
-  const [apiError, setApiError] = useState<string | null>(null); // Inline error messages
   const [cameraError, setCameraError] = useState<string | null>(null);
   const webcamRef = useRef<Webcam>(null);
   const mainContentRef = useRef<HTMLDivElement>(null);
 
-  // Image compression utility - handles HEIC, large mobile photos, EXIF orientation
-  const compressImage = (base64Str: string, maxWidth = 512, maxHeight = 512): Promise<string> => {
+  // Image compression utility
+  const compressImage = (base64Str: string, maxWidth = 640, maxHeight = 640): Promise<string> => {
     return new Promise((resolve) => {
       if (!base64Str || !base64Str.startsWith('data:')) {
         resolve(base64Str);
@@ -71,103 +67,46 @@ export default function App() {
       }
       
       const img = new Image();
-      const timeoutId = setTimeout(() => {
-        console.warn('Image load timeout, using original');
-        resolve(base64Str);
-      }, 15000);
+      const timeoutId = setTimeout(() => resolve(base64Str), 10000); // 10s individual image load timeout
 
       img.onload = () => {
         clearTimeout(timeoutId);
-        try {
-          const canvas = document.createElement('canvas');
-          let width = img.naturalWidth || img.width;
-          let height = img.naturalHeight || img.height;
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
 
-          // Scale down proportionally
-          const scale = Math.min(1, maxWidth / width, maxHeight / height);
-          width = Math.round(width * scale);
-          height = Math.round(height * scale);
-
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext('2d');
-          if (ctx) {
-            // White background to handle transparent PNGs
-            ctx.fillStyle = '#FFFFFF';
-            ctx.fillRect(0, 0, width, height);
-            ctx.imageSmoothingEnabled = true;
-            ctx.imageSmoothingQuality = 'medium';
-            ctx.drawImage(img, 0, 0, width, height);
-            // Always output as JPEG (handles HEIC, WEBP, PNG from mobile)
-            // Quality 0.75 balances size vs quality - keeps payload small for mobile
-            const result = canvas.toDataURL('image/jpeg', 0.75);
-            console.log(`Compressed: ${width}x${height}, size: ${Math.round(result.length / 1024)}KB`);
-            resolve(result);
-          } else {
-            resolve(base64Str);
+        if (width > height) {
+          if (width > maxWidth) {
+            height *= maxWidth / width;
+            width = maxWidth;
           }
-        } catch (err) {
-          console.error('Compression error:', err);
+        } else {
+          if (height > maxHeight) {
+            width *= maxHeight / height;
+            height = maxHeight;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = 'medium';
+          ctx.drawImage(img, 0, 0, width, height);
+          // Reduced quality and size for mobile stability (640px is plenty for detection)
+          resolve(canvas.toDataURL('image/jpeg', 0.7));
+        } else {
           resolve(base64Str);
         }
       };
       
       img.onerror = () => {
         clearTimeout(timeoutId);
-        console.error('Image load error during compression');
         resolve(base64Str);
       };
 
-      // Required for cross-origin images (some mobile browsers)
-      img.crossOrigin = 'anonymous';
       img.src = base64Str;
-    });
-  };
-
-  // Compress from File object directly (for gallery uploads - avoids HEIC issues)
-  const compressFile = (file: File, maxWidth = 512, maxHeight = 512): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      // Use createImageBitmap when available (handles EXIF orientation automatically)
-      if (typeof createImageBitmap !== 'undefined') {
-        createImageBitmap(file)
-          .then((bitmap) => {
-            const canvas = document.createElement('canvas');
-            let width = bitmap.width;
-            let height = bitmap.height;
-            const scale = Math.min(1, maxWidth / width, maxHeight / height);
-            width = Math.round(width * scale);
-            height = Math.round(height * scale);
-            canvas.width = width;
-            canvas.height = height;
-            const ctx = canvas.getContext('2d')!;
-            ctx.fillStyle = '#FFFFFF';
-            ctx.fillRect(0, 0, width, height);
-            ctx.drawImage(bitmap, 0, 0, width, height);
-            bitmap.close();
-            const result = canvas.toDataURL('image/jpeg', 0.75);
-            console.log(`File compressed (bitmap): ${width}x${height}, size: ${Math.round(result.length / 1024)}KB`);
-            resolve(result);
-          })
-          .catch(() => {
-            // Fallback to FileReader approach
-            const reader = new FileReader();
-            reader.onloadend = async () => {
-              const compressed = await compressImage(reader.result as string, maxWidth, maxHeight);
-              resolve(compressed);
-            };
-            reader.onerror = () => reject(new Error('Failed to read file'));
-            reader.readAsDataURL(file);
-          });
-      } else {
-        // Fallback for older browsers
-        const reader = new FileReader();
-        reader.onloadend = async () => {
-          const compressed = await compressImage(reader.result as string, maxWidth, maxHeight);
-          resolve(compressed);
-        };
-        reader.onerror = () => reject(new Error('Failed to read file'));
-        reader.readAsDataURL(file);
-      }
     });
   };
 
@@ -237,96 +176,172 @@ export default function App() {
         }
       } catch (err: any) {
         console.error("Capture failure:", err);
-        setApiError("Erro ao capturar foto: " + (err.message || "Tente novamente."));
+        alert("Erro ao capturar foto: " + (err.message || "Tente novamente."));
         setIsCapturing(false);
       }
     }
   };
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
-    
-    try {
-      console.log(`File selected: ${file.name}, type: ${file.type}, size: ${Math.round(file.size / 1024)}KB`);
-      // Use compressFile which handles HEIC, EXIF orientation via createImageBitmap
-      const compressed = await compressFile(file);
-      setOriginalImage(compressed);
-      setIsCapturing(false);
-    } catch (err: any) {
-      console.error('File upload error:', err);
-      setApiError('Erro ao carregar a foto. Tente outra foto ou use a câmera.');
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        const compressed = await compressImage(reader.result as string);
+        setOriginalImage(compressed);
+        setIsCapturing(false);
+      };
+      reader.readAsDataURL(file);
     }
   };
 
   const submitForAnalysis = async () => {
     if (!firstName || !ageRange || !originalImage) {
-      setApiError("Preencha todos os campos e tire a foto para continuar.");
+      alert("Preencha todos os campos e tire a foto para continuar.");
       return;
     }
-    if (isProcessing) return; // Block double-clicks
     
-    setIsProcessing(true);
-    setApiError(null);
     setPhase('analyzing');
     const startTime = Date.now();
     
-    try {
-      const result = await transformImage(originalImage, 'aging');
-      
-      const elapsed = Date.now() - startTime;
-      const minWait = 7500;
-      const remaining = Math.max(0, minWait - elapsed);
-      
-      setTimeout(() => {
-        setAgedImage(result.imageUrl);
-        setPhase('aged_result');
-        setIsProcessing(false);
-        // Facebook Pixel: Custom conversion - foto aging gerada
-        if (typeof window !== 'undefined' && (window as any).fbq) {
-          (window as any).fbq('trackCustom', 'FotoGerada', { funnel: 'principal', tipo: 'aging' });
-          console.log('[FB Pixel] FotoGerada event fired (principal/aging)');
+    let attempts = 0;
+    const maxAttempts = 2;
+
+    const performAnalysis = async (): Promise<void> => {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 120000); // 120s timeout for mobile stability
+
+        const res = await fetch('/api/transformar', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          signal: controller.signal,
+          keepalive: true, // Help with mobile connection stability
+          body: JSON.stringify({
+            base64Image: originalImage,
+            type: 'aging'
+          })
+        });
+        
+        clearTimeout(timeoutId);
+
+        if (!res.ok) {
+          const errorText = await res.text();
+          let msg = `Erro no servidor (${res.status})`;
+          try {
+            const json = JSON.parse(errorText);
+            if (json.error) msg = json.error;
+          } catch(e) {}
+          throw new Error(msg);
         }
-      }, remaining);
-    } catch (err: any) {
-      console.error('[Aging] Failed:', err.message || err);
-      setApiError(err.message || 'Erro ao processar. Tente novamente.');
-      setPhase('capture');
-      setIsProcessing(false);
-    }
+
+        const data = await res.json();
+        
+        if (data.imagemTransformada) {
+          const elapsed = Date.now() - startTime;
+          const minWait = 7500; 
+          const remaining = Math.max(0, minWait - elapsed);
+          
+          setTimeout(() => {
+            setAgedImage(data.imagemTransformada);
+            setPhase('aged_result');
+          }, remaining);
+        } else {
+          throw new Error(data.error || "Falha ao analisar imagem");
+        }
+      } catch (err: any) {
+        console.warn(`Analysis attempt ${attempts + 1} failed:`, err);
+        
+        // Detailed error for debugging on mobile
+        const errorMessage = err instanceof TypeError ? "Falha na conexão (Verifique sinal/Wi-Fi)" : (err.message || "Erro desconhecido");
+        const isNetworkErr = err instanceof TypeError || err.name === 'AbortError';
+        
+        if (attempts < maxAttempts && isNetworkErr) {
+          attempts++;
+          await new Promise(r => setTimeout(r, 3000)); // Longer retry delay
+          return performAnalysis();
+        }
+        console.error("Analysis failed:", err);
+        alert(err.name === 'AbortError' ? "A conexão demorou muito. Sua foto é muito grande ou o sinal está fraco. Tente novamente." : "Erro na análise: " + errorMessage);
+        setPhase('capture');
+      }
+    };
+
+    await performAnalysis();
   };
 
   const applyTreatment = async () => {
-    if (isProcessing) return; // Block double-clicks
-    
-    setIsProcessing(true);
-    setApiError(null);
     setPhase('processing_treatment');
     const startTime = Date.now();
     
-    try {
-      const result = await transformImage(originalImage!, 'treatment');
-      
-      const elapsed = Date.now() - startTime;
-      const minWait = 8500;
-      const remaining = Math.max(0, minWait - elapsed);
+    let attempts = 0;
+    const maxAttempts = 2;
 
-      setTimeout(() => {
-        setTreatedImage(result.imageUrl);
-        setPhase('treated_result');
-        setIsProcessing(false);
-        // Facebook Pixel: Custom conversion - foto treatment gerada
-        if (typeof window !== 'undefined' && (window as any).fbq) {
-          (window as any).fbq('trackCustom', 'FotoGerada', { funnel: 'principal', tipo: 'treatment' });
-          console.log('[FB Pixel] FotoGerada event fired (principal/treatment)');
+    const performTreatment = async (): Promise<void> => {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 120000); // 120s timeout for mobile stability
+
+        const res = await fetch('/api/transformar', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          signal: controller.signal,
+          keepalive: true, // Help with mobile connection stability
+          body: JSON.stringify({
+            base64Image: originalImage,
+            type: 'treatment'
+          })
+        });
+        
+        clearTimeout(timeoutId);
+
+        if (!res.ok) {
+          const errorText = await res.text();
+          let msg = `Erro no servidor (${res.status})`;
+          try {
+            const json = JSON.parse(errorText);
+            if (json.error) msg = json.error;
+          } catch(e) {}
+          throw new Error(msg);
         }
-      }, remaining);
-    } catch (err: any) {
-      console.error('[Treatment] Failed:', err.message || err);
-      setApiError(err.message || 'Erro ao processar. Tente novamente.');
-      setPhase('aged_result');
-      setIsProcessing(false);
-    }
+
+        const data = await res.json();
+        
+        if (data.imagemTransformada) {
+          const elapsed = Date.now() - startTime;
+          const minWait = 8500; 
+          const remaining = Math.max(0, minWait - elapsed);
+
+          setTimeout(() => {
+            setTreatedImage(data.imagemTransformada);
+            setPhase('treated_result');
+          }, remaining);
+        } else {
+          throw new Error(data.error || "Falha ao processar imagem");
+        }
+      } catch (err: any) {
+        console.warn(`Treatment attempt ${attempts + 1} failed:`, err);
+        
+        // Detailed error for debugging on mobile
+        const errorMessage = err instanceof TypeError ? "Falha na conexão (Verifique sinal/Wi-Fi)" : (err.message || "Erro desconhecido");
+        const isNetworkErr = err instanceof TypeError || err.name === 'AbortError';
+        
+        if (attempts < maxAttempts && isNetworkErr) {
+          attempts++;
+          await new Promise(r => setTimeout(r, 3000)); // Longer retry delay
+          return performTreatment();
+        }
+        console.error("Treatment failed:", err);
+        alert(err.name === 'AbortError' ? "A conexão demorou muito no tratamento. Tente novamente." : "Erro no tratamento: " + errorMessage);
+        setPhase('aged_result');
+      }
+    };
+
+    await performTreatment();
   };
 
   return (
@@ -369,8 +384,7 @@ export default function App() {
               >
                 <div className="mb-6 space-y-3 px-1">
                   <h1 
-                    onClick={() => setShowFaceButton(true)}
-                    className="text-[22px] sm:text-[26px] font-black text-slate-900 leading-snug text-center text-balance cursor-default active:opacity-80 transition-opacity"
+                    className="text-[22px] sm:text-[26px] font-black text-slate-900 leading-snug text-center text-balance select-none transition-opacity font-sans"
                   >
                     Especialista revela <span className="text-red-600">verdadeiro motivo escondido na pele</span>, que está causando <span className="underline decoration-red-500 decoration-[3px] underline-offset-4">envelhecimento precoce</span>, e revela como se livrar das bactérias para <span className="bg-emerald-100 text-emerald-900 px-2 py-0.5 rounded-lg">parecer até 5 anos mais jovem</span> usando vinagre de maçã!
                   </h1>
@@ -379,21 +393,10 @@ export default function App() {
                 <div className="relative w-full rounded-3xl overflow-hidden shadow-xl shadow-slate-200 border border-slate-200 bg-black min-h-[200px] flex items-center justify-center">
                   <VSLPlayer />
                 </div>
-
-
-
-                {showFaceButton && (
-                  <button 
-                    onClick={() => setPhase('capture')}
-                    className="mt-10 w-full py-6 bg-emerald-600 text-white font-black rounded-2xl shadow-2xl uppercase tracking-[0.1em] text-[15px] animate-bounce"
-                  >
-                    INICIAR ANÁLISE FACIAL AGORA!
-                  </button>
-                )}
               </motion.div>
             )}
 
-            {/* PHASE 2: CAPTURE & INFO - QUIZ STYLE */}
+            {/* PHASE 2: CAPTURE & INFO */}
             {phase === 'capture' && (
               <motion.div
                 key="capture"
@@ -402,77 +405,38 @@ export default function App() {
                 exit={{ opacity: 0, x: -20 }}
                 className="flex-1 flex flex-col space-y-6"
               >
-                {/* Progress Steps */}
-                <div className="flex items-center justify-center gap-2 mb-2">
-                  {[1,2,3].map(s => (
-                    <div key={s} className="flex items-center gap-2">
-                      <div className={cn("w-10 h-10 rounded-full flex items-center justify-center text-[15px] font-black transition-all",
-                        captureStep >= s ? "bg-emerald-600 text-white shadow-lg" : "bg-slate-200 text-slate-400"
-                      )}>{s}</div>
-                      {s < 3 && <div className={cn("w-8 h-1 rounded-full transition-all", captureStep > s ? "bg-emerald-600" : "bg-slate-200")} />}
-                    </div>
-                  ))}
+                <div className="space-y-3 text-center mb-2">
+                  <h2 className="text-[28px] sm:text-3xl font-black text-slate-900 leading-tight">Análise Especializada</h2>
+                  <p className="text-[16px] leading-relaxed text-slate-600 px-2">
+                    Preencha seus dados reais e adicione uma foto de rosto bem iluminada para iniciarmos.
+                  </p>
                 </div>
 
-                {/* STEP 1: NAME */}
-                {captureStep === 1 && (
-                  <motion.div key="step1" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
-                    <div className="text-center space-y-2">
-                      <h2 className="text-[28px] font-black text-slate-900">Como posso te chamar?</h2>
-                      <p className="text-[16px] text-slate-500">Digite seu primeiro nome para personalizar sua análise</p>
-                    </div>
-                    <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200">
-                      <input type="text" value={firstName} onChange={e => setFirstName(e.target.value)}
-                        placeholder="Ex: Maria" maxLength={30} autoFocus
-                        className="w-full px-5 py-5 rounded-2xl border-2 border-slate-200 bg-slate-50 text-[20px] font-bold text-center focus:ring-2 focus:ring-emerald-600 focus:border-emerald-600 outline-none transition-all placeholder:font-normal placeholder:text-slate-400"
-                      />
-                    </div>
-                    <button onClick={() => { if (firstName.trim()) setCaptureStep(2); }}
-                      disabled={!firstName.trim()}
-                      className={cn("w-full py-5 font-black uppercase tracking-wider text-[17px] rounded-2xl transition-all",
-                        firstName.trim() ? "bg-emerald-600 text-white shadow-lg active:scale-[0.97]" : "bg-slate-200 text-slate-400 cursor-not-allowed")}>
-                      CONTINUAR →
-                    </button>
-                  </motion.div>
-                )}
-
-                {/* STEP 2: AGE */}
-                {captureStep === 2 && (
-                  <motion.div key="step2" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
-                    <div className="text-center space-y-2">
-                      <h2 className="text-[28px] font-black text-slate-900">{firstName}, qual sua faixa de idade?</h2>
-                      <p className="text-[16px] text-slate-500">Selecione abaixo para calibrar a análise</p>
-                    </div>
-                    <div className="space-y-3">
-                      {[
-                        { value: '41-50', label: '41 a 50 anos', emoji: '🟢' },
-                        { value: '51-60', label: '51 a 60 anos', emoji: '🟡' },
-                        { value: '60+', label: 'Mais de 60 anos', emoji: '🔴' },
-                      ].map(opt => (
-                        <button key={opt.value}
-                          onClick={() => { setAgeRange(opt.value); setTimeout(() => setCaptureStep(3), 300); }}
-                          className={cn("w-full flex items-center gap-4 p-5 rounded-2xl border-2 transition-all active:scale-[0.98]",
-                            ageRange === opt.value ? "border-emerald-600 bg-emerald-50 shadow-md" : "border-slate-200 bg-white"
-                          )}>
-                          <span className="text-2xl">{opt.emoji}</span>
-                          <span className="text-[18px] font-bold text-slate-900">{opt.label}</span>
-                          {ageRange === opt.value && <span className="ml-auto text-emerald-600 text-xl font-black">✓</span>}
-                        </button>
-                      ))}
-                    </div>
-                    <button onClick={() => setCaptureStep(1)} className="text-slate-400 font-bold text-sm underline underline-offset-4 w-full text-center mt-2">
-                      ← Voltar
-                    </button>
-                  </motion.div>
-                )}
-
-                {/* STEP 3: PHOTO */}
-                {captureStep === 3 && (
-                  <motion.div key="step3" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-5">
-                    <div className="text-center space-y-2">
-                      <h2 className="text-[28px] font-black text-slate-900">Agora tire sua foto, {firstName}!</h2>
-                      <p className="text-[16px] text-slate-500">Foto de rosto com boa iluminação para a análise</p>
-                    </div>
+                <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 shrink-0 space-y-5">
+                  <div className="space-y-2">
+                    <label className="text-[13px] uppercase font-bold text-slate-600 mb-1 block tracking-wider">Seu Primeiro Nome</label>
+                    <input 
+                      type="text" 
+                      value={firstName}
+                      onChange={e => setFirstName(e.target.value)}
+                      placeholder="Ex: Maria"
+                      className="w-full px-5 py-4 rounded-xl border-2 border-slate-200 bg-slate-50 text-lg font-medium focus:ring-2 focus:ring-emerald-600 focus:border-emerald-600 outline-none transition-all placeholder:font-normal placeholder:text-slate-400"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[13px] uppercase font-bold text-slate-600 mb-1 block tracking-wider">Sua Idade</label>
+                    <select 
+                      value={ageRange}
+                      onChange={e => setAgeRange(e.target.value)}
+                      className="w-full px-5 py-4 rounded-xl border-2 border-slate-200 bg-slate-50 text-lg font-medium focus:ring-2 focus:ring-emerald-600 focus:border-emerald-600 outline-none transition-all appearance-none"
+                    >
+                      <option value="" disabled>Selecione sua idade</option>
+                      <option value="41-50">41 a 50 anos</option>
+                      <option value="51-60">51 a 60 anos</option>
+                      <option value="60+">Mais de 60 anos</option>
+                    </select>
+                  </div>
+                </div>
 
                 <div className="flex-1 flex flex-col items-center gap-4">
                   {!originalImage ? (
@@ -591,7 +555,7 @@ export default function App() {
                         <label className="w-full py-4 rounded-2xl border border-slate-200 bg-white active:bg-slate-100 transition flex items-center justify-center gap-3 cursor-pointer text-slate-700 text-[15px] font-bold shadow-sm">
                           <Upload className="w-5 h-5 text-slate-500" />
                           <span>Procurar na Galeria...</span>
-                          <input type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,image/*" onChange={handleFileUpload} className="hidden" />
+                          <input type="file" accept="image/*" onChange={handleFileUpload} className="hidden" />
                         </label>
                       </div>
                     )
@@ -608,43 +572,23 @@ export default function App() {
                   )}
                 </div>
 
-                <div className="mt-8 shrink-0 pb-8 space-y-3">
-                  {/* Inline error message - replaces alert() for better mobile UX */}
-                  {apiError && phase === 'capture' && (
-                    <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 flex items-start gap-3">
-                      <AlertCircle className="w-5 h-5 text-red-500 mt-0.5 shrink-0" />
-                      <div>
-                        <p className="text-sm text-red-700 font-medium">{apiError}</p>
-                        <button 
-                          onClick={() => setApiError(null)}
-                          className="text-xs text-red-500 underline mt-1"
-                        >
-                          Fechar
-                        </button>
-                      </div>
-                    </div>
-                  )}
+                <div className="mt-8 shrink-0 pb-8">
                   <button
                     onClick={submitForAnalysis}
-                    disabled={!originalImage || !firstName || !ageRange || isProcessing}
+                    disabled={!originalImage || !firstName || !ageRange}
                     className={cn(
                       "w-full py-5 font-black uppercase tracking-wider text-[16px] rounded-2xl transform transition flex items-center justify-center gap-2",
-                      (!originalImage || !firstName || !ageRange || isProcessing) 
+                      (!originalImage || !firstName || !ageRange) 
                         ? "bg-slate-200 text-slate-400 cursor-not-allowed" 
                         : "bg-emerald-600 active:bg-emerald-700 text-white shadow-lg shadow-emerald-600/20 active:-translate-y-1"
                     )}
                   >
-                    {isProcessing ? 'PROCESSANDO...' : 'INICIAR ANÁLISE FACIAL!'}
-                    {!isProcessing && <ChevronRight className="w-6 h-6" />}
+                    INICIAR ANÁLISE FACIAL!
+                    <ChevronRight className="w-6 h-6" />
                   </button>
                 </div>
-                <button onClick={() => setCaptureStep(2)} className="text-slate-400 font-bold text-sm underline underline-offset-4 w-full text-center mt-4">
-                  ← Voltar
-                </button>
               </motion.div>
-              )}
-            </motion.div>
-          )}
+            )}
 
             {/* PHASE 3: ANALYZING */}
             {phase === 'analyzing' && (
@@ -750,15 +694,9 @@ export default function App() {
 
                 <button
                   onClick={applyTreatment}
-                  disabled={isProcessing}
-                  className={cn(
-                    "w-full py-5 font-black uppercase tracking-widest text-[15px] rounded-2xl shadow-xl transform transition active:scale-95",
-                    isProcessing
-                      ? "bg-slate-300 text-slate-500 cursor-not-allowed shadow-none"
-                      : "bg-emerald-600 active:bg-emerald-700 text-white shadow-emerald-600/30"
-                  )}
+                  className="w-full py-5 bg-emerald-600 active:bg-emerald-700 text-white font-black uppercase tracking-widest text-[15px] rounded-2xl shadow-xl shadow-emerald-600/30 transform transition active:scale-95"
                 >
-                  {isProcessing ? 'PROCESSANDO...' : 'CONTINUAR!'}
+                  CONTINUAR!
                 </button>
               </motion.div>
             )}
@@ -899,7 +837,7 @@ export default function App() {
                 </div>
 
                 {/* VSL Final Video */}
-                <div className="relative w-full rounded-3xl overflow-hidden shadow-xl shadow-slate-200 border border-slate-200 bg-black min-h-[200px] flex items-center justify-center">
+                <div className="relative w-full rounded-3xl overflow-hidden shadow-2xl ring-4 ring-slate-100 bg-black min-h-[200px] flex items-center justify-center">
                     <FinalVSLPlayer />
                 </div>
               </motion.div>
