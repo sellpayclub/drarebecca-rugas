@@ -56,6 +56,7 @@ export default function App() {
   
   const [isCapturing, setIsCapturing] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false); // Prevents double-click
+  const [captureStep, setCaptureStep] = useState<1|2|3>(1); // 1=name, 2=age, 3=photo
   const [apiError, setApiError] = useState<string | null>(null); // Inline error messages
   const [cameraError, setCameraError] = useState<string | null>(null);
   const webcamRef = useRef<Webcam>(null);
@@ -392,7 +393,7 @@ export default function App() {
               </motion.div>
             )}
 
-            {/* PHASE 2: CAPTURE & INFO */}
+            {/* PHASE 2: CAPTURE & INFO - QUIZ STYLE */}
             {phase === 'capture' && (
               <motion.div
                 key="capture"
@@ -401,38 +402,77 @@ export default function App() {
                 exit={{ opacity: 0, x: -20 }}
                 className="flex-1 flex flex-col space-y-6"
               >
-                <div className="space-y-3 text-center mb-2">
-                  <h2 className="text-[28px] sm:text-3xl font-black text-slate-900 leading-tight">Análise Especializada</h2>
-                  <p className="text-[16px] leading-relaxed text-slate-600 px-2">
-                    Preencha seus dados reais e adicione uma foto de rosto bem iluminada para iniciarmos.
-                  </p>
+                {/* Progress Steps */}
+                <div className="flex items-center justify-center gap-2 mb-2">
+                  {[1,2,3].map(s => (
+                    <div key={s} className="flex items-center gap-2">
+                      <div className={cn("w-10 h-10 rounded-full flex items-center justify-center text-[15px] font-black transition-all",
+                        captureStep >= s ? "bg-emerald-600 text-white shadow-lg" : "bg-slate-200 text-slate-400"
+                      )}>{s}</div>
+                      {s < 3 && <div className={cn("w-8 h-1 rounded-full transition-all", captureStep > s ? "bg-emerald-600" : "bg-slate-200")} />}
+                    </div>
+                  ))}
                 </div>
 
-                <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 shrink-0 space-y-5">
-                  <div className="space-y-2">
-                    <label className="text-[13px] uppercase font-bold text-slate-600 mb-1 block tracking-wider">Seu Primeiro Nome</label>
-                    <input 
-                      type="text" 
-                      value={firstName}
-                      onChange={e => setFirstName(e.target.value)}
-                      placeholder="Ex: Maria"
-                      className="w-full px-5 py-4 rounded-xl border-2 border-slate-200 bg-slate-50 text-lg font-medium focus:ring-2 focus:ring-emerald-600 focus:border-emerald-600 outline-none transition-all placeholder:font-normal placeholder:text-slate-400"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-[13px] uppercase font-bold text-slate-600 mb-1 block tracking-wider">Sua Idade</label>
-                    <select 
-                      value={ageRange}
-                      onChange={e => setAgeRange(e.target.value)}
-                      className="w-full px-5 py-4 rounded-xl border-2 border-slate-200 bg-slate-50 text-lg font-medium focus:ring-2 focus:ring-emerald-600 focus:border-emerald-600 outline-none transition-all appearance-none"
-                    >
-                      <option value="" disabled>Selecione sua idade</option>
-                      <option value="41-50">41 a 50 anos</option>
-                      <option value="51-60">51 a 60 anos</option>
-                      <option value="60+">Mais de 60 anos</option>
-                    </select>
-                  </div>
-                </div>
+                {/* STEP 1: NAME */}
+                {captureStep === 1 && (
+                  <motion.div key="step1" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+                    <div className="text-center space-y-2">
+                      <h2 className="text-[28px] font-black text-slate-900">Como posso te chamar?</h2>
+                      <p className="text-[16px] text-slate-500">Digite seu primeiro nome para personalizar sua análise</p>
+                    </div>
+                    <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200">
+                      <input type="text" value={firstName} onChange={e => setFirstName(e.target.value)}
+                        placeholder="Ex: Maria" maxLength={30} autoFocus
+                        className="w-full px-5 py-5 rounded-2xl border-2 border-slate-200 bg-slate-50 text-[20px] font-bold text-center focus:ring-2 focus:ring-emerald-600 focus:border-emerald-600 outline-none transition-all placeholder:font-normal placeholder:text-slate-400"
+                      />
+                    </div>
+                    <button onClick={() => { if (firstName.trim()) setCaptureStep(2); }}
+                      disabled={!firstName.trim()}
+                      className={cn("w-full py-5 font-black uppercase tracking-wider text-[17px] rounded-2xl transition-all",
+                        firstName.trim() ? "bg-emerald-600 text-white shadow-lg active:scale-[0.97]" : "bg-slate-200 text-slate-400 cursor-not-allowed")}>
+                      CONTINUAR →
+                    </button>
+                  </motion.div>
+                )}
+
+                {/* STEP 2: AGE */}
+                {captureStep === 2 && (
+                  <motion.div key="step2" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+                    <div className="text-center space-y-2">
+                      <h2 className="text-[28px] font-black text-slate-900">{firstName}, qual sua faixa de idade?</h2>
+                      <p className="text-[16px] text-slate-500">Selecione abaixo para calibrar a análise</p>
+                    </div>
+                    <div className="space-y-3">
+                      {[
+                        { value: '41-50', label: '41 a 50 anos', emoji: '🟢' },
+                        { value: '51-60', label: '51 a 60 anos', emoji: '🟡' },
+                        { value: '60+', label: 'Mais de 60 anos', emoji: '🔴' },
+                      ].map(opt => (
+                        <button key={opt.value}
+                          onClick={() => { setAgeRange(opt.value); setTimeout(() => setCaptureStep(3), 300); }}
+                          className={cn("w-full flex items-center gap-4 p-5 rounded-2xl border-2 transition-all active:scale-[0.98]",
+                            ageRange === opt.value ? "border-emerald-600 bg-emerald-50 shadow-md" : "border-slate-200 bg-white"
+                          )}>
+                          <span className="text-2xl">{opt.emoji}</span>
+                          <span className="text-[18px] font-bold text-slate-900">{opt.label}</span>
+                          {ageRange === opt.value && <span className="ml-auto text-emerald-600 text-xl font-black">✓</span>}
+                        </button>
+                      ))}
+                    </div>
+                    <button onClick={() => setCaptureStep(1)} className="text-slate-400 font-bold text-sm underline underline-offset-4 w-full text-center mt-2">
+                      ← Voltar
+                    </button>
+                  </motion.div>
+                )}
+
+                {/* STEP 3: PHOTO */}
+                {captureStep === 3 && (
+                  <motion.div key="step3" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-5">
+                    <div className="text-center space-y-2">
+                      <h2 className="text-[28px] font-black text-slate-900">Agora tire sua foto, {firstName}!</h2>
+                      <p className="text-[16px] text-slate-500">Foto de rosto com boa iluminação para a análise</p>
+                    </div>
 
                 <div className="flex-1 flex flex-col items-center gap-4">
                   {!originalImage ? (
@@ -598,8 +638,13 @@ export default function App() {
                     {!isProcessing && <ChevronRight className="w-6 h-6" />}
                   </button>
                 </div>
+                <button onClick={() => setCaptureStep(2)} className="text-slate-400 font-bold text-sm underline underline-offset-4 w-full text-center mt-4">
+                  ← Voltar
+                </button>
               </motion.div>
-            )}
+              )}
+            </motion.div>
+          )}
 
             {/* PHASE 3: ANALYZING */}
             {phase === 'analyzing' && (
